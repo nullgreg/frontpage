@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Frontpage",
+  "version": "1.1.0",
+  "description": "A dark-glass new tab and home page: toolbar bookmarks by folder, clock, weather, notes and silly jokes.",
+  "icons": {
+    "48": "icons/icon.svg",
+    "96": "icons/icon.svg"
+  },
+  "permissions": ["bookmarks", "storage"],
+  "chrome_url_overrides": {
+    "newtab": "page/index.html"
+  },
+  "chrome_settings_overrides": {
+    "homepage": "page/index.html"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "frontpage@nullgreg",
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  }
+}

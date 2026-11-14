@@ -1,0 +1,7 @@
+node_modules/
+web-ext-artifacts/
+dev/out/
+__pycache__/
+extension/.amo-upload-uuid
+.env
+docs/*

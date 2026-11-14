@@ -1,0 +1,408 @@
+:root {
+  color-scheme: dark;
+  --bg: #07080d;
+  --ink: #eef0f6;
+  --ink-2: rgb(238 240 246 / 0.66);
+  --ink-3: rgb(238 240 246 / 0.42);
+  --glass: rgb(255 255 255 / 0.055);
+  --glass-hi: rgb(255 255 255 / 0.1);
+  --line: rgb(255 255 255 / 0.1);
+  --line-hi: rgb(255 255 255 / 0.22);
+  --accent: #8ab4ff;
+  --radius: 18px;
+  --panel-w: 360px;
+  --font: "Inter", "Cantarell", "Segoe UI", system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html { height: 100%; }
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.45 var(--font);
+  overflow-x: hidden;
+}
+
+h2, h3, p, ul { margin: 0; }
+ul { padding: 0; list-style: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.sprite { position: absolute; width: 0; height: 0; }
+.icon {
+  width: 20px; height: 20px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.muted { color: var(--ink-3); font-size: 12.5px; }
+
+/* ---------- backdrop ---------- */
+.backdrop {
+  position: fixed; inset: 0; z-index: -1; overflow: hidden;
+  background: var(--base, var(--bg));
+}
+/* Soft vignette so the edges settle into the page colour. */
+.backdrop[data-kind="glow"]::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(120% 80% at 50% 0%, transparent 0%, rgb(7 8 13 / var(--vignette, 0.6)) 80%);
+}
+.backdrop .scene { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }
+.backdrop[data-kind="canvas"] .scene { display: block; }
+/* Weather drawn over any style. Above the glow vignette (::after), which would
+   otherwise darken it toward the edges. */
+.backdrop .weather-layer { position: absolute; inset: 0; width: 100%; height: 100%; display: none; z-index: 1; }
+.backdrop[data-fx] .weather-layer { display: block; }
+/* Each blob wanders its own looping path, swelling and fading as it goes.
+   The cycles are short enough to see the movement within a few seconds of
+   looking, and their lengths share no factor, so the three never fall into step. */
+.backdrop i {
+  position: absolute; width: 62vmax; height: 62vmax; border-radius: 50%;
+  display: none; will-change: transform, opacity;
+  animation: drift-1 26s ease-in-out infinite;
+}
+.backdrop[data-kind="glow"] i { display: block; }
+.backdrop.still i { animation: none; }
+.backdrop i:nth-child(1) {
+  left: -18vmax; top: -28vmax;
+  background: radial-gradient(closest-side, var(--c1), transparent);
+}
+.backdrop i:nth-child(2) {
+  right: -22vmax; top: 2vmax;
+  background: radial-gradient(closest-side, var(--c2), transparent);
+  animation: drift-2 34s ease-in-out infinite -11s;
+}
+.backdrop i:nth-child(3) {
+  left: 18vmax; bottom: -38vmax;
+  background: radial-gradient(closest-side, var(--c3), transparent);
+  animation: drift-3 41s ease-in-out infinite -23s;
+}
+@keyframes drift-1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+  33% { transform: translate3d(16vmax, 8vmax, 0) scale(1.22); opacity: 0.75; }
+  66% { transform: translate3d(5vmax, 17vmax, 0) scale(0.9); opacity: 1; }
+}
+@keyframes drift-2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); opacity: 0.9; }
+  40% { transform: translate3d(-18vmax, 12vmax, 0) scale(0.88); opacity: 1; }
+  70% { transform: translate3d(-6vmax, -8vmax, 0) scale(1.25); opacity: 0.7; }
+}
+@keyframes drift-3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+  30% { transform: translate3d(-14vmax, -12vmax, 0) scale(1.2); opacity: 0.8; }
+  65% { transform: translate3d(12vmax, -18vmax, 0) scale(0.95); opacity: 1; }
+}
+
+/* ---------- grain ---------- */
+/* Dark, slow gradients only have a few 8-bit levels to work with, which shows as
+   rings. A faint static noise layer over the page breaks those edges up.
+   --grain is its strength: 0 switches it off, about 0.08 is clearly filmic. */
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 3; pointer-events: none;
+  opacity: var(--grain, 0.04);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.6 0 0 0 -0.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- glass ---------- */
+.glass {
+  background: linear-gradient(160deg, rgb(255 255 255 / 0.085), rgb(255 255 255 / 0.03) 60%);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 18px 40px -22px rgb(0 0 0 / 0.7);
+  backdrop-filter: blur(22px) saturate(150%);
+}
+
+/* Blurring what's behind a card only pays off over the detailed canvas scenes.
+   Over a smooth glow there is nothing to blur, and the blur's low-resolution
+   passes turn the gradient into visible blocks, so it is switched off there.
+   It stays on while the weather layer runs, so cards blur the streaks behind
+   their text. */
+.backdrop:not([data-kind="canvas"]):not([data-fx]) ~ .wrap :is(.card, .glass) { backdrop-filter: none; }
+
+/* The cards' own tint is a gradient image; this colour sits under it and
+   darkens the glass over the brighter parts of the Sky and Daylight styles. */
+.backdrop:is([data-style="sky"], [data-style="daylight"]) ~ .wrap :is(.card, .glass) { background-color: rgb(6 10 22 / 0.38); }
+
+/* ---------- layout ---------- */
+.wrap {
+  max-width: 1500px; margin: 0 auto;
+  padding: clamp(20px, 4vw, 56px);
+  transition: padding-right 0.3s ease;
+}
+.top {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 24px; flex-wrap: wrap;
+}
+.top-side { display: flex; flex-direction: column; gap: 10px; margin-left: auto; }
+.top-right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+
+.clock {
+  display: block;
+  font-size: clamp(3.4rem, 8vw, 6rem); font-weight: 200; line-height: 1;
+  letter-spacing: -0.035em; font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #fff, rgb(255 255 255 / 0.72));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.clock-period {
+  margin-left: 0.5rem; font-size: 0.26em; font-weight: 500; letter-spacing: 0.08em;
+  color: var(--ink-2);
+}
+.date { margin-top: 10px; font-size: 1.05rem; color: var(--ink-2); }
+.joke {
+  display: block; margin-top: 14px; padding: 0; max-width: 52ch;
+  background: none; border: 0; text-align: left;
+  font-size: 0.95rem; font-style: italic; color: var(--ink-3);
+  opacity: 0; transform: translateY(4px);
+}
+.joke.in { opacity: 1; transform: none; transition: opacity 0.5s ease, transform 0.5s ease, color 0.2s; }
+.joke:hover { color: var(--ink-2); }
+/* Hidden but still laid out, so nothing below shifts when it fades in. */
+.joke-punchline { visibility: hidden; opacity: 0; color: var(--ink-2); }
+.joke.revealed .joke-punchline { visibility: visible; opacity: 1; transition: opacity 0.9s ease; }
+
+.icon-btn {
+  display: grid; place-items: center; width: 42px; height: 42px; padding: 0;
+  border-radius: 14px; color: var(--ink-2);
+  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+}
+.icon-btn:not(.glass) { background: none; border: 1px solid transparent; }
+.icon-btn:hover, .icon-btn[aria-expanded="true"] { color: var(--ink); border-color: var(--line-hi); }
+
+.weather {
+  display: flex; align-items: center; gap: 10px;
+  height: 42px; padding: 0 14px 0 12px; border-radius: 14px; text-align: left;
+  transition: border-color 0.2s;
+}
+.weather:hover { border-color: var(--line-hi); }
+.weather .icon { width: 22px; height: 22px; color: var(--accent); }
+.weather-temp { font-size: 1.15rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.weather-meta { display: grid; font-size: 11.5px; line-height: 1.25; color: var(--ink-2); }
+.weather-meta span:last-child { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* 7-day forecast: a row per day, as wide as the chip and buttons above it. Each
+   bar is the day's low-to-high span within the week's, coloured by temperature
+   (--temps, set with the data); the dot is the temperature now. */
+.forecast {
+  display: grid; grid-template-columns: auto auto auto minmax(48px, 1fr) auto; column-gap: 8px;
+  min-width: 250px; padding: 8px 14px; border-radius: 16px;
+  font-size: 12.5px; font-variant-numeric: tabular-nums;
+}
+.forecast li {
+  display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: center;
+  height: 23px;
+}
+.forecast .icon { width: 17px; height: 17px; color: var(--accent); }
+.forecast-day { padding-right: 2px; color: var(--ink-2); }
+.forecast .today .forecast-day { color: var(--ink); font-weight: 500; }
+.forecast-low, .forecast-high { text-align: right; }
+.forecast-low { color: var(--ink-3); }
+.forecast-bar { position: relative; height: 4px; border-radius: 99px; background: rgb(255 255 255 / 0.09); }
+.forecast-fill {
+  position: absolute; inset: 0; border-radius: 99px; background: var(--temps);
+  clip-path: inset(0 calc(100% - var(--to)) 0 var(--from) round 99px);
+}
+.forecast-now {
+  position: absolute; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%;
+  background: #fff; box-shadow: 0 0 0 2px rgb(17 19 32 / 0.95);
+}
+
+/* ---------- search ---------- */
+.search {
+  display: flex; align-items: center; gap: 12px;
+  max-width: 640px; height: 54px; margin: clamp(28px, 5vh, 52px) auto 0;
+  padding: 0 16px 0 18px; border-radius: 999px; color: var(--ink-3);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search:focus-within {
+  border-color: hsl(220 100% 78% / 0.55);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 0 44px -10px hsl(225 100% 65% / 0.6);
+}
+.search input[type="text"] {
+  flex: 1; min-width: 0; height: 100%; padding: 0;
+  background: none; border: 0; border-radius: 0; outline: 0; font-size: 1.05rem; color: var(--ink);
+}
+.search input::placeholder { color: var(--ink-3); opacity: 1; }
+kbd {
+  padding: 2px 8px; border: 1px solid var(--line); border-radius: 7px;
+  font: 12px var(--font); color: var(--ink-3);
+}
+.search:focus-within kbd { visibility: hidden; }
+.search-hint { margin-top: 12px; text-align: center; color: var(--ink-3); font-size: 13px; }
+
+/* ---------- bookmark cards ---------- */
+.grid { display: flex; align-items: flex-start; gap: 18px; margin-top: clamp(28px, 5vh, 52px); }
+.col { flex: 1 1 0; min-width: 0; max-width: 420px; display: flex; flex-direction: column; gap: 18px; }
+.card {
+  padding: 14px 10px 10px;
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, hsl(var(--hue) 80% 70% / 0.11), rgb(255 255 255 / 0.035) 50%);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 18px 40px -22px rgb(0 0 0 / 0.7);
+  backdrop-filter: blur(22px) saturate(150%);
+  transition: border-color 0.25s;
+}
+.card:hover { border-color: hsl(var(--hue) 80% 78% / 0.35); }
+.card-head { display: flex; align-items: center; gap: 9px; padding: 0 8px 8px; }
+.card-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex: none;
+  background: hsl(var(--hue) 85% 72%);
+  box-shadow: 0 0 12px hsl(var(--hue) 90% 65% / 0.9);
+}
+.card-title {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.card-count { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.card-sub {
+  margin: 10px 8px 4px; padding-top: 10px; border-top: 1px solid var(--line);
+  font-size: 11.5px; font-weight: 500; letter-spacing: 0.04em; color: var(--ink-3);
+}
+
+.link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 8px; border-radius: 10px;
+  color: var(--ink); text-decoration: none;
+  transition: background-color 0.15s;
+}
+.link:hover { background: var(--glass-hi); }
+.link.active {
+  background: hsl(220 100% 70% / 0.2);
+  box-shadow: inset 0 0 0 1px hsl(220 100% 78% / 0.55), 0 0 24px -8px hsl(225 100% 65% / 0.7);
+}
+.link-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile {
+  position: relative; display: grid; place-items: center; flex: none;
+  width: 24px; height: 24px; border-radius: 7px;
+  background: hsl(var(--tile-hue) 45% 34% / 0.75);
+  font-size: 11.5px; font-weight: 600; text-transform: uppercase; color: rgb(255 255 255 / 0.9);
+}
+.tile-img { position: absolute; inset: 4px; width: 16px; height: 16px; border-radius: 3px; opacity: 0; }
+.tile.has-icon { background: rgb(226 230 240 / 0.9); color: transparent; }
+.tile.has-icon .tile-img { opacity: 1; }
+
+.empty { margin: 8vh auto; max-width: 44ch; text-align: center; color: var(--ink-2); }
+
+/* ---------- notes panel ---------- */
+.panel {
+  position: fixed; top: 16px; right: 16px; bottom: 16px; z-index: 5;
+  width: min(var(--panel-w), calc(100vw - 32px));
+  display: flex; flex-direction: column; gap: 12px; padding: 16px;
+  border-radius: 22px; overflow-y: auto;
+  background: linear-gradient(160deg, rgb(30 34 54), rgb(15 17 28));
+  transform: translateX(calc(100% + 24px)); visibility: hidden;
+  transition: transform 0.3s ease, visibility 0s 0.3s;
+}
+.panel.open { transform: none; visibility: visible; transition: transform 0.3s ease; }
+.panel-head, .dialog-head { display: flex; align-items: center; gap: 10px; }
+.panel-head h2, .dialog-head h2 { font-size: 1.05rem; font-weight: 600; }
+.panel-head .muted { flex: 1; text-align: right; }
+.panel-head .icon-btn, .dialog-head .icon-btn { width: 34px; height: 34px; margin-left: auto; }
+.panel-head .muted + .icon-btn { margin-left: 0; }
+.panel h3 {
+  margin-top: 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-2);
+}
+
+textarea, input[type="text"], select {
+  width: 100%; padding: 10px 12px;
+  background: rgb(0 0 0 / 0.28); border: 1px solid var(--line); border-radius: 12px;
+  transition: border-color 0.2s;
+}
+textarea:focus, input[type="text"]:focus, select:focus { outline: 0; border-color: hsl(220 100% 78% / 0.55); }
+textarea::placeholder, input::placeholder { color: var(--ink-3); opacity: 1; }
+#notes-text { flex: 1 1 34%; min-height: 140px; resize: none; line-height: 1.5; }
+
+.todos { display: grid; gap: 2px; }
+.todo { display: flex; align-items: center; gap: 10px; padding: 5px 4px 5px 8px; border-radius: 10px; }
+.todo:hover { background: var(--glass); }
+.todo input { width: 16px; height: 16px; flex: none; accent-color: var(--accent); }
+.todo-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.todo.done .todo-text { color: var(--ink-3); text-decoration: line-through; }
+.todo .icon-btn { width: 26px; height: 26px; opacity: 0; }
+.todo .icon-btn .icon { width: 14px; height: 14px; }
+.todo:hover .icon-btn, .todo .icon-btn:focus-visible { opacity: 1; }
+
+.text-btn {
+  align-self: flex-start; padding: 2px 0; background: none; border: 0;
+  font-size: 12.5px; color: var(--ink-3);
+}
+.text-btn:hover { color: var(--ink); }
+
+/* ---------- settings dialog ---------- */
+.dialog {
+  width: min(440px, calc(100vw - 32px)); padding: 20px; border-radius: 22px; color: var(--ink);
+  background: linear-gradient(160deg, rgb(30 34 54), rgb(15 17 28));
+  max-height: calc(100vh - 32px); overflow-y: auto;
+}
+.dialog[open] { display: grid; gap: 18px; }
+/* Kept light and unblurred so a background choice can be judged behind the dialog. */
+.dialog::backdrop { background: rgb(4 5 10 / 0.35); }
+.swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.swatch {
+  display: grid; gap: 5px; padding: 0; background: none; border: 0;
+  font-size: 11.5px; color: var(--ink-3); text-align: center;
+}
+.swatch-art {
+  display: block; aspect-ratio: 16 / 10; border-radius: 10px;
+  border: 1px solid var(--line); background-size: cover;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.swatch:hover .swatch-art { border-color: var(--line-hi); }
+.swatch[aria-checked="true"] { color: var(--ink); }
+.swatch[aria-checked="true"] .swatch-art {
+  border-color: var(--accent); box-shadow: 0 0 0 2px hsl(220 100% 75% / 0.35);
+}
+.field { display: grid; gap: 7px; }
+.field > label { font-size: 12.5px; color: var(--ink-2); }
+.field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.row { display: flex; gap: 8px; }
+.btn {
+  padding: 0 16px; border-radius: 12px; border: 1px solid var(--line-hi);
+  background: var(--glass-hi); white-space: nowrap;
+}
+.btn:hover { background: rgb(255 255 255 / 0.16); }
+.city-current {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 8px 12px; border-radius: 12px; background: hsl(220 100% 70% / 0.14);
+}
+.city-current .text-btn { align-self: center; }
+.city-results { display: grid; gap: 2px; }
+.city-results button {
+  display: block; width: 100%; padding: 8px 12px; text-align: left;
+  background: none; border: 0; border-radius: 10px;
+}
+.city-results button:hover { background: var(--glass-hi); }
+.city-results small { margin-left: 6px; color: var(--ink-3); font-size: 12.5px; }
+.check { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.check input { width: 16px; height: 16px; margin: 3px 0 0; accent-color: var(--accent); }
+.check small { display: block; color: var(--ink-3); font-size: 12.5px; }
+.check input:disabled + span { opacity: 0.45; }
+.dialog-section {
+  margin-top: 2px; padding-top: 16px; border-top: 1px solid var(--line);
+  font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2);
+}
+.hint { color: var(--ink-3); font-size: 12.5px; }
+.hint:empty { display: none; }
+#set-own-jokes { min-height: 96px; resize: vertical; font-size: 14px; line-height: 1.45; }
+input:disabled, textarea:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ---------- responsive ---------- */
+@media (min-width: 1100px) {
+  body.notes-open .wrap { padding-right: calc(var(--panel-w) + 40px); }
+}
+@media (max-width: 560px) {
+  .top-side { margin-left: 0; width: 100%; }
+  .top-right { justify-content: flex-start; }
+  .field-pair { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .backdrop i { animation: none; }
+  .wrap, .panel, .panel.open, .joke.in, .joke.revealed .joke-punchline { transition: none; }
+}
+
+/* Slim, dim scrollbars inside the dark panels. */
+textarea, .dialog, .panel { scrollbar-width: thin; scrollbar-color: rgb(255 255 255 / 0.25) transparent; }

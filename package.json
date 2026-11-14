@@ -1,0 +1,15 @@
+{
+  "name": "frontpage",
+  "version": "1.1.0",
+  "private": true,
+  "description": "A dark-glass new tab and home page extension for Firefox",
+  "scripts": {
+    "start": "web-ext run --source-dir extension",
+    "lint": "web-ext lint --source-dir extension",
+    "build": "web-ext build --source-dir extension --overwrite-dest",
+    "sign": "node --env-file=.env node_modules/web-ext/bin/web-ext.js sign --channel=unlisted --source-dir extension"
+  },
+  "devDependencies": {
+    "web-ext": "^10.8.0"
+  }
+}

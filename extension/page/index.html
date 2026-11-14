@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New Tab</title>
+  <link rel="icon" href="../icons/icon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+    <symbol id="i-notes" viewBox="0 0 24 24"><path d="M5 4h14v10l-6 6H5z"/><path d="M19 14h-6v6"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="w-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="w-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+    <symbol id="w-partly" viewBox="0 0 24 24"><path d="M8 2.5V4M3.4 4.4l1.1 1.1M1.5 9H3M12.6 4.4l-1.1 1.1"/><path d="M5.3 10.6a3 3 0 0 1 5.4-2.9"/><path d="M9 20a3.5 3.5 0 0 1-.4-6.98 4.8 4.8 0 0 1 9.3-1.72A3.9 3.9 0 0 1 18 20H9z"/></symbol>
+    <symbol id="w-cloud" viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.7-1.93A4.5 4.5 0 0 1 17.5 18H7z"/></symbol>
+    <symbol id="w-fog" viewBox="0 0 24 24"><path d="M7 12a4 4 0 0 1-.5-5.97 5.5 5.5 0 0 1 10.7-.93A4.5 4.5 0 0 1 19 12"/><path d="M4 15h16M6 18.5h12"/></symbol>
+    <symbol id="w-rain" viewBox="0 0 24 24"><path d="M7 15a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.7-1.93A4.5 4.5 0 0 1 17.5 15H7z"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/></symbol>
+    <symbol id="w-snow" viewBox="0 0 24 24"><path d="M7 15a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.7-1.93A4.5 4.5 0 0 1 17.5 15H7z"/><path d="M8 18.5h.01M12 20.5h.01M16 18.5h.01M10 21.5h.01M14 18h.01"/></symbol>
+    <symbol id="w-storm" viewBox="0 0 24 24"><path d="M7 15a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.7-1.93A4.5 4.5 0 0 1 17.5 15H7z"/><path d="M12.5 15.5l-2 3h3l-2 3.5"/></symbol>
+  </svg>
+
+  <div class="backdrop" aria-hidden="true"><i></i><i></i><i></i><canvas class="scene"></canvas><canvas class="weather-layer"></canvas></div>
+
+  <div class="wrap">
+    <header class="top">
+      <div class="clock-block">
+        <time id="clock" class="clock"><span id="clock-time"></span><span id="clock-period" class="clock-period"></span></time>
+        <div id="date" class="date"></div>
+        <button id="joke" class="joke" type="button" hidden></button>
+      </div>
+      <div class="top-side">
+        <div class="top-right">
+          <button id="weather" class="weather glass" type="button" title="Weather settings" hidden></button>
+          <button id="notes-toggle" class="icon-btn glass" type="button" aria-label="Notes" title="Notes" aria-expanded="false" aria-controls="notes-panel">
+            <svg class="icon"><use href="#i-notes"/></svg>
+          </button>
+          <button id="settings-toggle" class="icon-btn glass" type="button" aria-label="Settings" title="Settings">
+            <svg class="icon"><use href="#i-settings"/></svg>
+          </button>
+        </div>
+        <ul id="forecast" class="forecast glass" aria-label="7-day forecast" hidden></ul>
+      </div>
+    </header>
+
+    <form id="search-form" class="search glass" role="search">
+      <svg class="icon"><use href="#i-search"/></svg>
+      <input id="search" type="text" inputmode="search" placeholder="Search bookmarks or the web" aria-label="Search bookmarks or the web" autocomplete="off" spellcheck="false" autofocus>
+      <kbd>/</kbd>
+    </form>
+    <p id="search-hint" class="search-hint" hidden></p>
+
+    <main id="grid" class="grid"></main>
+  </div>
+
+  <aside id="notes-panel" class="panel glass" aria-label="Notes" inert>
+    <header class="panel-head">
+      <h2>Notes</h2>
+      <span id="notes-status" class="muted"></span>
+      <button id="notes-close" class="icon-btn" type="button" aria-label="Close notes">
+        <svg class="icon"><use href="#i-close"/></svg>
+      </button>
+    </header>
+    <textarea id="notes-text" placeholder="Scratchpad…" aria-label="Scratchpad" spellcheck="false"></textarea>
+    <h3>To do</h3>
+    <form id="todo-form">
+      <input id="todo-input" type="text" placeholder="Add a task and press Enter" aria-label="Add a task" autocomplete="off">
+    </form>
+    <ul id="todo-list" class="todos"></ul>
+    <button id="todo-clear" class="text-btn" type="button" hidden>Clear completed</button>
+  </aside>
+
+  <dialog id="settings" class="dialog glass" aria-labelledby="settings-title">
+    <div class="dialog-head">
+      <h2 id="settings-title">Settings</h2>
+      <button id="settings-close" class="icon-btn" type="button" aria-label="Close settings">
+        <svg class="icon"><use href="#i-close"/></svg>
+      </button>
+    </div>
+
+    <div class="field">
+      <label for="city-input">Weather city</label>
+      <div id="city-current" class="city-current" hidden>
+        <span id="city-name"></span>
+        <button id="city-clear" class="text-btn" type="button">Remove</button>
+      </div>
+      <form id="city-form" class="row">
+        <input id="city-input" type="text" placeholder="e.g. Lisbon" autocomplete="off">
+        <button class="btn" type="submit">Find</button>
+      </form>
+      <ul id="city-results" class="city-results"></ul>
+      <p id="city-msg" class="muted" hidden></p>
+    </div>
+    <label class="check">
+      <input id="set-forecast" type="checkbox">
+      <span>Show 7-day forecast<small>A row per day under the weather, with a bar from low to high</small></span>
+    </label>
+
+    <div class="field-pair">
+      <div class="field">
+        <label for="set-unit">Temperature</label>
+        <select id="set-unit">
+          <option value="celsius">Celsius</option>
+          <option value="fahrenheit">Fahrenheit</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="set-clock">Clock</label>
+        <select id="set-clock">
+          <option value="auto">Locale default</option>
+          <option value="12">12-hour</option>
+          <option value="24">24-hour</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="set-engine">Web search</label>
+      <select id="set-engine"></select>
+    </div>
+
+    <div class="field">
+      <label id="bg-label">Background</label>
+      <div id="bg-picker" class="swatches" role="radiogroup" aria-labelledby="bg-label"></div>
+    </div>
+    <label class="check">
+      <input id="set-animate" type="checkbox">
+      <span>Animate background<small>Off shows each style as a still image</small></span>
+    </label>
+    <label class="check">
+      <input id="set-weather-fx" type="checkbox">
+      <span>Weather effects<small>The background reacts to the weather in your city</small></span>
+    </label>
+
+    <label class="check">
+      <input id="set-favicons" type="checkbox">
+      <span>Show site icons<small>Loaded from each bookmarked site's own favicon</small></span>
+    </label>
+
+    <h3 class="dialog-section">Jokes</h3>
+    <label class="check">
+      <input id="set-jokes" type="checkbox">
+      <span>Show jokes<small>The punchline follows after five seconds</small></span>
+    </label>
+    <label class="check">
+      <input id="set-nerdy" type="checkbox">
+      <span>Include nerdy jokes<small>Programming and science humor</small></span>
+    </label>
+    <div class="field">
+      <label for="set-name">Address jokes to</label>
+      <input id="set-name" type="text" placeholder="A name, e.g. Gertrude (optional)" maxlength="40" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label for="set-own-jokes">Your own jokes</label>
+      <textarea id="set-own-jokes" rows="4" maxlength="20000" spellcheck="true" aria-describedby="own-jokes-hint"
+        placeholder="Why did the gardener cross the road? | To get to the other hedge."></textarea>
+      <p id="own-jokes-hint" class="hint">One per line, with | before the punchline. Shown exactly as written, and more often than the built-in ones.</p>
+      <p id="own-jokes-status" class="hint" aria-live="polite"></p>
+    </div>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
