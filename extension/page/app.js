@@ -9,9 +9,23 @@ import { initBackground } from "./background.js";
 const $ = (id) => document.getElementById(id);
 
 // Painted first, from the last-used choice, so there is no flash while settings load.
-const background = initBackground(document.querySelector(".backdrop"));
+const background = initBackground(document.querySelector(".backdrop"), {
+  credit: $("photo-credit"),
+  onHidePhoto: hidePhoto,
+});
 
+let settingsLoaded = false; // declared before the await, so hidePhoto() can read it during it
 const settings = await initSettings();
+settingsLoaded = true;
+
+// Only the newest few hundred are kept, so the settings stay within what
+// Firefox Sync takes per item. The remembered picture can show before the
+// settings have loaded; a click that early just skips the picture.
+function hidePhoto(id) {
+  if (!settingsLoaded) return;
+  const hidden = settings.get().photoHidden.filter((other) => other !== id);
+  settings.set({ photoHidden: [...hidden, id].slice(-300) });
+}
 
 // ----- clock -----
 function renderClock() {
@@ -86,6 +100,11 @@ const weather = initWeather($("weather"), {
 const jokes = initJokes($("joke"));
 
 function apply(current) {
+  background.setPhotos({
+    categories: current.photoCategories,
+    refresh: current.photoRefresh,
+    hidden: current.photoHidden,
+  });
   background.set(current.background, current.animate);
   background.setWeather(conditions, current.weatherFx);
   renderClock();

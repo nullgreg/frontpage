@@ -14,11 +14,16 @@
 //   name=TEXT    who jokes are addressed to
 //   nojokes      hide jokes
 //   forecast     show the 7-day forecast list
+//   photos=IDS   Photos style with these categories, comma-separated (bg=photos)
+//   refresh=ID   how often Photos changes: tab|15m|hour|day  (day)
+//   livephotos   let Photos reach the real Commons and Art Institute APIs
+//                (otherwise both answer with the pictures in dev/fixtures/)
 //   icons        site icons on (makes network requests)
 //   settings     open the settings dialog
 //   notes        open the notes panel
 //   q=TEXT       text typed into the search box
 //   wait=N       seconds before the screenshot      (4)
+//   warnings     show console.warn messages in the error box too
 (() => {
   "use strict";
 
@@ -48,6 +53,13 @@
   window.addEventListener("unhandledrejection", (event) => {
     showError(`Unhandled rejection: ${event.reason?.stack ?? event.reason}`);
   });
+  if (has("warnings")) {
+    const warn = console.warn.bind(console);
+    console.warn = (...args) => {
+      warn(...args);
+      showError(`Warning: ${args.map((arg) => (arg instanceof Error ? arg.message : String(arg))).join(" ")}`);
+    };
+  }
 
   // ----- weather scenario -----
   const WX_CODES = { clear: 0, partly: 2, overcast: 3, fog: 45, drizzle: 53, rain: 63, snow: 73, storm: 95 };
@@ -130,12 +142,71 @@
     };
   }
 
+  // ----- picture services -----
+  // Three stand-in pictures, served by dev/serve.py, answered in the shape of
+  // a Commons search and an Art Institute search.
+  const FIXTURES = [
+    { name: "photo-1", title: "Hills at dusk", artist: '<a href="https://example.com/">Dev Shim</a>' },
+    { name: "photo-2", title: "A bright sea", artist: "<div class=\"fn value\">Dev &amp; Shim</div>" },
+    { name: "photo-3", title: "Nebula", artist: "NASA/ESA" },
+  ];
+  const fixtureUrl = (name) => `${location.origin}/dev/fixtures/${name}.svg`;
+
+  function commonsSearch() {
+    return {
+      batchcomplete: true,
+      query: {
+        pages: FIXTURES.map(({ name, title, artist }, i) => ({
+          pageid: 9000 + i,
+          ns: 6,
+          title: `File:${title}.jpg`,
+          imageinfo: [
+            {
+              width: 3000,
+              height: 2000,
+              mime: "image/jpeg",
+              url: fixtureUrl(name),
+              thumburl: fixtureUrl(name),
+              descriptionurl: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(title)}.jpg`,
+              extmetadata: {
+                ObjectName: { value: title },
+                Artist: { value: artist },
+                LicenseShortName: { value: "CC BY-SA 4.0" },
+              },
+            },
+          ],
+        })),
+      },
+    };
+  }
+
+  function aicSearch() {
+    return {
+      pagination: { total: FIXTURES.length, limit: 100, offset: 0, total_pages: 1, current_page: 1 },
+      data: FIXTURES.map(({ name, title }, i) => ({
+        id: 900 + i,
+        title: `${title} (print)`,
+        artist_title: "Dev Shim",
+        date_display: "1830",
+        image_id: name,
+        thumbnail: { width: 3000, height: 2000 },
+      })),
+      config: { iiif_url: `${location.origin}/dev/iiif`, website_url: "https://www.artic.edu" },
+    };
+  }
+
+  const json = (body) =>
+    Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } }));
+
   const realFetch = window.fetch.bind(window);
   window.fetch = (input, init) => {
     const url = typeof input === "string" ? input : input instanceof Request ? input.url : String(input);
-    if (!url.startsWith("https://api.open-meteo.com/v1/forecast")) return realFetch(input, init);
-    const body = JSON.stringify(forecast(new URL(url)));
-    return Promise.resolve(new Response(body, { status: 200, headers: { "Content-Type": "application/json" } }));
+    if (url.startsWith("https://api.open-meteo.com/v1/forecast")) return json(forecast(new URL(url)));
+    if (!has("livephotos")) {
+      if (url.startsWith("https://commons.wikimedia.org/w/api.php")) return json(commonsSearch());
+      if (url.startsWith("https://api.artic.edu/")) return json(aicSearch());
+    }
+    return realFetch(input, init);
   };
 
   // ----- bookmarks -----
@@ -227,10 +298,12 @@
     jokes: !has("nojokes"),
     nerdy: false,
     name: params.get("name") ?? "",
-    background: params.get("bg") ?? "aurora",
+    background: params.get("bg") ?? (has("photos") ? "photos" : "aurora"),
     animate: !has("still"),
     weatherFx: params.get("fx") !== "0",
     forecast: has("forecast"),
+    ...(has("photos") && params.get("photos") ? { photoCategories: params.get("photos").split(",") } : {}),
+    ...(has("refresh") ? { photoRefresh: params.get("refresh") } : {}),
     updatedAt: 1,
   };
 

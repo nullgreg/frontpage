@@ -6,7 +6,8 @@ A dark-glass new tab and home page for Firefox, built as a small extension.
 - **Search.** Type to filter bookmarks; Enter opens the highlighted one (Ctrl+Enter in a new tab), arrow keys move the highlight. If nothing matches, Enter opens the address or searches the web.
 - **Clock, date and weather.** Weather comes from [Open-Meteo](https://open-meteo.com) (no account or API key) for a city you pick in settings, with an optional 7-day forecast: a row per day with its weather, low and high, and a bar showing where that range sits in the week, coloured by temperature (the dot on today's bar is the temperature now; hover a day for the chance of rain).
 - **Notes and to-dos.** A slide-out scratchpad saved through Firefox Sync.
-- **Backgrounds.** Nine styles to pick from in settings: drifting colour glows (Aurora, Ember, Lagoon), Daylight (colours follow the time of day), animated Starfield, Waves, Constellation and Sky scenes, and a still Midnight. Animation can be switched off.
+- **Backgrounds.** Ten styles to pick from in settings: drifting colour glows (Aurora, Ember, Lagoon), Daylight (colours follow the time of day), animated Starfield, Waves, Constellation and Sky scenes, Photos, and a still Midnight. Animation can be switched off.
+- **Photos.** High-quality pictures from [Wikimedia Commons](https://commons.wikimedia.org/wiki/Commons:Featured_pictures) featured pictures and the [Art Institute of Chicago](https://www.artic.edu/open-access/public-api)'s public-domain collection (no account or key). Tick any mix of Space, Landscapes, Seascapes, Animals, Cities & architecture, Mountains & forests, Flowers & plants and Earth from above, and the art styles Impressionist, Old Masters, Japanese prints and Asian ink painting. A new picture comes with every new tab, every 15 minutes, every hour or every day. Each one is credited at the bottom right, with buttons for the next picture and for never showing this one again.
 - **Weather effects and the Sky style.** With a weather city set, the background follows the weather there, subtly: faint rain, drizzle, snow, fog or haze over whichever style is chosen, dim lightning in storms, the glow styles shift colour with the mood, wind sets the pace and height of Waves, and cloud hides stars in Starfield. Sky depicts the sky over that city outright: time of day, sun or moon, stars and drifting clouds, with the same rain or snow on top. One switch in settings turns the effects off; Sky always shows the weather.
 - **Silly jokes.** About 600 dad jokes, a different one on every new tab. The setup shows first and the punchline fades in five seconds later; click to skip the wait, click again for another joke. Give it a name in settings and the jokes are addressed to that person ("Hey Gertrude, …", "Psst, Gertrude: …"). You can add jokes of your own, and switch on an extra set of programming and science jokes.
 
@@ -37,7 +38,7 @@ To update: bump `version` in [extension/manifest.json](extension/manifest.json) 
 
 ## Settings
 
-The sliders button in the top right opens settings: weather city, 7-day forecast on/off, temperature unit, 12/24-hour clock, web search engine, background style, animation and weather effects, site icons on/off, and the joke options (on/off, nerdy jokes, the name they are addressed to, your own jokes). Settings and notes sync between your machines through Firefox Sync.
+The sliders button in the top right opens settings: weather city, 7-day forecast on/off, temperature unit, 12/24-hour clock, web search engine, background style (for Photos also the categories and how often the picture changes), animation and weather effects, site icons on/off, and the joke options (on/off, nerdy jokes, the name they are addressed to, your own jokes). Settings and notes sync between your machines through Firefox Sync.
 
 ## Good to know
 
@@ -45,6 +46,7 @@ The sliders button in the top right opens settings: weather city, 7-day forecast
 - **Site icons.** Firefox doesn't let extensions read its saved favicons, so each bookmark shows a coloured letter tile that is replaced by the site's own `/favicon.ico` when one loads. That means the page contacts your bookmarked sites (and nobody else) for icons. Turn off "Show site icons" to stop that.
 - **Your own jokes.** One per line in settings. Put `|` where the pause goes (`Why did Barnaby cross the road? | To borrow my ladder again.`); without one, the last sentence becomes the punchline. They are shown exactly as written (no name is added) and each comes up about ten times as often as a built-in joke.
 - **Weather effects.** They need a weather city (the switch is greyed out without one) and follow the weather there with up to 15 minutes' delay, since that is how often the reading is refreshed; a reading more than two hours old, as after a long time offline, produces no effects. With animation off, or when the OS asks for reduced motion, the colour tints, haze and fog still show but nothing falls and nothing flashes. Sky always shows the weather, whatever the switch says.
+- **Photos.** The Photos style contacts Wikimedia Commons (`commons.wikimedia.org`, pictures from `upload.wikimedia.org` and `thumb.wikimedia.org`) and the Art Institute of Chicago (`api.artic.edu`, pictures from `www.artic.edu`), with no cookies or referrer. Commons turns away bursts of requests, so each ticked category keeps a list of candidates that is refreshed with a new random selection once a week; that is a handful of requests per category per week. The next picture is loaded ahead of time, so a new tab shows its picture straight away. "Every day" changes at midnight. With "every new tab", a tab keeps its picture until it is closed. Pictures are chosen to suit a background: wide, at least 1900 pixels across, and with titles that suggest nudity, death or disaster left out. "Don't show this again" covers anything that gets through, and remembers the last 300 pictures you hid. Without a connection, the first time, the page shows a plain dark background and says so in the corner.
 - **Notes size.** Firefox Sync allows about 8 KB per item. Longer notes are still saved, but only on the current machine; the panel says so when that happens.
 - **Skipped bookmarks.** Bookmarklets (`javascript:`) and smart-folder queries (`place:`) can't be opened from a page, so they are left out.
 
@@ -62,6 +64,7 @@ The sliders button in the top right opens settings: weather city, 7-day forecast
 | `extension/page/canvas-util.js` | Helpers shared by the canvas scenes: gradients, glows, clamp, RGB mixing, easing |
 | `extension/page/weather-layer.js` | Weather drawn over any style: rain and drizzle streaks, snow, fog, haze, lightning |
 | `extension/page/sky.js` | The Sky style: sky colour by time of day, sun, moon, stars, clouds |
+| `extension/page/photos.js` | The Photos style: categories and their queries, Commons and Art Institute lookups, weekly pools, choosing, preloading, crossfade and credit |
 | `extension/page/jokes.js` | Joke widget: shuffled decks, punchline timing, name openers, parsing of your own jokes |
 | `extension/page/jokes-data.js` | The built-in jokes, as setup and punchline pairs |
 | `extension/page/settings.js` | Settings dialog |
@@ -78,6 +81,7 @@ dev/shoot.sh base ''                       # screenshot -> dev/out/base.png
 dev/shoot.sh stars 'bg=starfield&wx=rain'  # URL parameters pick the scenario
 dev/shoot.sh dialog 'settings' 1440,1300   # optional WIDTH,HEIGHT
 node dev/check.mjs                         # checks on the pure functions
+node dev/photo-pools.mjs [CATEGORY…]       # live: how many usable pictures each Photos category finds
 ```
 
-`shoot.sh` starts `dev/serve.py`, renders the page in headless Firefox with fake bookmarks, in-memory storage and scripted weather (`dev/shim.js`), and writes one PNG. The parameters it understands (`bg`, `still`, `wx`, `code`, `wind`, `cloud`, `sun`, `settings`, `notes`, `q`, `wait`, …) are listed at the top of `dev/shim.js`. `node dev/check.mjs` prints a "Reparsing as ES module" warning; that is expected.
+`shoot.sh` starts `dev/serve.py`, renders the page in headless Firefox with fake bookmarks, in-memory storage and scripted weather (`dev/shim.js`), and writes one PNG. The parameters it understands (`bg`, `still`, `wx`, `code`, `wind`, `cloud`, `sun`, `photos`, `refresh`, `livephotos`, `settings`, `notes`, `q`, `wait`, `warnings`, …) are listed at the top of `dev/shim.js`. Photos are served from stand-ins in `dev/fixtures/` unless `livephotos` is given. Headless screenshots don't render `backdrop-filter`, so cards over a photo look less blurred there than in Firefox. `node dev/check.mjs` prints a "Reparsing as ES module" warning; that is expected.

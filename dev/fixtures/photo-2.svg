@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3000" height="2000" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice">
+  <!-- Stand-in picture for the dev shim: a bright sea under a pale sky. -->
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#5c9fd6"/><stop offset="1" stop-color="#d9ecf7"/>
+  </linearGradient>
+  <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#2c7fae"/><stop offset="1" stop-color="#0d3e5e"/>
+  </linearGradient>
+  <rect width="300" height="200" fill="url(#sky)"/>
+  <ellipse cx="80" cy="50" rx="40" ry="9" fill="#fff" opacity=".7"/>
+  <ellipse cx="220" cy="38" rx="55" ry="10" fill="#fff" opacity=".6"/>
+  <rect y="112" width="300" height="88" fill="url(#sea)"/>
+  <path d="M0 150 Q 40 144 80 150 T 160 150 T 240 150 T 320 150" stroke="#cfe8f5" stroke-width="1.2" fill="none" opacity=".5"/>
+  <path d="M190 112 214 96 236 112Z" fill="#1c3a2a"/>
+</svg>

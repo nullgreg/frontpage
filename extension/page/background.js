@@ -1,6 +1,7 @@
-// Page backgrounds. Three kinds:
+// Page backgrounds. Four kinds:
 //   glow   - three soft colour blobs drifting slowly (CSS animation)
 //   canvas - a scene drawn on a <canvas>, capped at 30 fps
+//   photo  - pictures from Wikimedia Commons and the Art Institute of Chicago (photos.js)
 //   plain  - a still gradient
 // With animation off (or "reduce motion" set in the OS) every style still
 // shows, as a single still frame.
@@ -8,6 +9,7 @@ import { clamp, ease, fillVertical, fillGlow, hexToRgb, mixRgb, scalePoints } fr
 import { weatherLayer } from "./weather-layer.js";
 import { sky, skyTime } from "./sky.js";
 import { STALE } from "./weather.js";
+import { createPhotoLayer } from "./photos.js";
 
 // [saturation %, lightness %, alpha] of the three glow blobs.
 const GLOW_BLOBS = [
@@ -299,6 +301,14 @@ const constellation = {
   },
 };
 
+// Swatch for Photos: a dusk sky over two ridges of hills.
+const PHOTO_PREVIEW = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 100' preserveAspectRatio='none'>
+<linearGradient id='s' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#1b3566'/>
+<stop offset='.55' stop-color='#b4707a'/><stop offset='1' stop-color='#f0b27a'/></linearGradient>
+<rect width='160' height='100' fill='url(#s)'/><circle cx='112' cy='52' r='9' fill='#ffe2b8'/>
+<path d='M0 68 28 44 46 58 72 32 100 60 124 47 160 70V100H0Z' fill='#33304f'/>
+<path d='M0 84 36 68 64 80 98 64 132 82 160 75V100H0Z' fill='#16172a'/></svg>`;
+
 // ---------- catalogue ----------
 export const BACKGROUNDS = [
   { id: "aurora", name: "Aurora", kind: "glow", base: "#0b0d17", hues: [225, 280, 175] },
@@ -346,6 +356,14 @@ export const BACKGROUNDS = [
     kind: "canvas",
     scene: sky,
     preview: "radial-gradient(circle at 72% 34%, rgb(255 236 190 / 0.85), transparent 24%), linear-gradient(#0a2850, #1f5584)",
+  },
+  {
+    id: "photos",
+    name: "Photos",
+    kind: "photo",
+    // Shows until the first picture has loaded, and if none can be.
+    base: "linear-gradient(160deg, #141829, #07080d 70%)",
+    preview: `url("data:image/svg+xml,${encodeURIComponent(PHOTO_PREVIEW)}") center / cover`,
   },
   {
     id: "midnight",
@@ -427,8 +445,13 @@ function runScene(canvas, scene, animate, env) {
   };
 }
 
-/** Controls the backdrop element. `set` and `setWeather` are cheap to call repeatedly. */
-export function initBackground(root) {
+/**
+ * Controls the backdrop element. `set`, `setWeather` and `setPhotos` are cheap
+ * to call repeatedly. `credit` is the Photos credit line, outside the backdrop
+ * because it holds links and buttons; `onHidePhoto(id)` saves a picture
+ * someone never wants to see again.
+ */
+export function initBackground(root, { credit, onHidePhoto } = {}) {
   const canvas = root.querySelector(".scene");
   const layerCanvas = root.querySelector(".weather-layer");
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -442,6 +465,7 @@ export function initBackground(root) {
   let stop = () => {};
   let layer = null; // runScene handle while the weather layer shows
   let layerKey = "";
+  const photos = createPhotoLayer(root, { credit, onHide: onHidePhoto });
 
   // Paints a glow style's blob colours with the current tint. Serves `refresh`
   // and Daylight's clock timer, so both pick up the weather.
@@ -526,6 +550,9 @@ export function initBackground(root) {
         scene.stop();
         scene = null;
       };
+    } else if (style.kind === "photo") {
+      photos.start(moving);
+      stop = () => photos.stop();
     }
 
     // Remembered outside async storage so the next tab can paint it immediately.
@@ -566,5 +593,8 @@ export function initBackground(root) {
   const saved = rememberedWeather?.conditions;
   if (saved && Date.now() - saved.at <= STALE) setWeather(saved, rememberedWeather.enabled ?? true);
 
-  return { set, setWeather };
+  /** `options` is { categories, refresh, hidden } from the settings. */
+  const setPhotos = (options) => photos.configure(options);
+
+  return { set, setWeather, setPhotos };
 }

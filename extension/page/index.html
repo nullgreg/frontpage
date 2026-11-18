@@ -13,6 +13,8 @@
     <symbol id="i-notes" viewBox="0 0 24 24"><path d="M5 4h14v10l-6 6H5z"/><path d="M19 14h-6v6"/></symbol>
     <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4.5h-4.5"/></symbol>
+    <symbol id="i-hide" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A9.9 9.9 0 0 1 12 5c5 0 8.8 4.2 10 7a13 13 0 0 1-2.6 3.6M6.6 6.6C4.3 8 2.7 10.1 2 12c1.2 2.8 5 7 10 7 1.9 0 3.6-.6 5.1-1.5"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
     <symbol id="w-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
     <symbol id="w-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
     <symbol id="w-partly" viewBox="0 0 24 24"><path d="M8 2.5V4M3.4 4.4l1.1 1.1M1.5 9H3M12.6 4.4l-1.1 1.1"/><path d="M5.3 10.6a3 3 0 0 1 5.4-2.9"/><path d="M9 20a3.5 3.5 0 0 1-.4-6.98 4.8 4.8 0 0 1 9.3-1.72A3.9 3.9 0 0 1 18 20H9z"/></symbol>
@@ -23,7 +25,7 @@
     <symbol id="w-storm" viewBox="0 0 24 24"><path d="M7 15a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.7-1.93A4.5 4.5 0 0 1 17.5 15H7z"/><path d="M12.5 15.5l-2 3h3l-2 3.5"/></symbol>
   </svg>
 
-  <div class="backdrop" aria-hidden="true"><i></i><i></i><i></i><canvas class="scene"></canvas><canvas class="weather-layer"></canvas></div>
+  <div class="backdrop" aria-hidden="true"><i></i><i></i><i></i><div class="photo"><img alt="" referrerpolicy="no-referrer"><img alt="" referrerpolicy="no-referrer"></div><canvas class="scene"></canvas><canvas class="weather-layer"></canvas></div>
 
   <div class="wrap">
     <header class="top">
@@ -55,6 +57,17 @@
 
     <main id="grid" class="grid"></main>
   </div>
+
+  <footer id="photo-credit" class="photo-credit" hidden>
+    <a class="photo-link" target="_blank" rel="noopener noreferrer"></a>
+    <span class="photo-msg" hidden></span>
+    <button class="photo-next icon-btn" type="button" aria-label="Next picture" title="Next picture">
+      <svg class="icon"><use href="#i-next"/></svg>
+    </button>
+    <button class="photo-hide icon-btn" type="button" aria-label="Don't show this picture again" title="Don't show this picture again">
+      <svg class="icon"><use href="#i-hide"/></svg>
+    </button>
+  </footer>
 
   <aside id="notes-panel" class="panel glass" aria-label="Notes" inert>
     <header class="panel-head">
@@ -125,6 +138,23 @@
     <div class="field">
       <label id="bg-label">Background</label>
       <div id="bg-picker" class="swatches" role="radiogroup" aria-labelledby="bg-label"></div>
+    </div>
+    <div id="photo-options" class="field" hidden>
+      <span class="field-label">Pictures of</span>
+      <div class="chip-group" role="group" aria-labelledby="photo-group-photo">
+        <span id="photo-group-photo" class="chip-heading">Photos</span>
+        <div id="photo-chips-photo" class="chips"></div>
+      </div>
+      <div class="chip-group" role="group" aria-labelledby="photo-group-art">
+        <span id="photo-group-art" class="chip-heading">Art</span>
+        <div id="photo-chips-art" class="chips"></div>
+      </div>
+      <p id="photo-hint" class="hint" aria-live="polite"></p>
+      <div class="field">
+        <label for="set-photo-refresh">New picture</label>
+        <select id="set-photo-refresh"></select>
+      </div>
+      <p class="hint">From Wikimedia Commons featured pictures and the Art Institute of Chicago. Each picture is credited at the bottom of the page.</p>
     </div>
     <label class="check">
       <input id="set-animate" type="checkbox">

@@ -354,5 +354,246 @@ check("weather.js imports under Node", () => assert.equal(typeof weather.findCit
   });
 }
 
+// ----- phase 6: photos -----
+{
+  const photos = await page("photos.js");
+  const { readFileSync } = await import("node:fs");
+  const fixture = (name) => JSON.parse(readFileSync(new URL(`fixtures/${name}`, import.meta.url)));
+  // Trimmed real answers: four Commons files (square, wide panorama, nearly
+  // square, wide and huge) and three Art Institute prints (two impressions of
+  // the Great Wave and a portrait-shaped one).
+  const commons = photos.commonsImages(fixture("commons-search.json"));
+  const art = photos.aicImages(fixture("aic-search.json"));
+  const byId = (list, id) => list.find((image) => image.id === id);
+
+  check("commonsImages reads title, artist, licence and a clean link", () => {
+    assert.equal(commons.length, 4);
+    const carina = byId(commons, "c:5254504");
+    assert.equal(carina.title, "ESO - The Carina Nebula (by)");
+    assert.equal(carina.license, "CC BY 4.0");
+    assert.equal(carina.source, "Wikimedia Commons");
+    assert.equal(carina.link, "https://commons.wikimedia.org/wiki/File:ESO_-_The_Carina_Nebula_(by).jpg");
+    assert.ok(!/<|utm_/.test(JSON.stringify(commons)), "no HTML or tracking parameters left");
+  });
+  check("commonsImages offers the 1920 and 3840 thumbnails, or the original when it is narrower", () => {
+    const [small, large] = byId(commons, "c:5254504").sizes;
+    assert.equal(small[0], 1920);
+    assert.match(small[1], /\/1920px-ESO_-_The_Carina_Nebula_%28by%29\.jpg$/);
+    assert.equal(large[0], 3840);
+    assert.match(large[1], /\/3840px-ESO_-_The_Carina_Nebula_%28by%29\.jpg$/);
+    const helix = byId(commons, "c:1669175").sizes; // 4279 wide
+    assert.match(helix[1][1], /\/3840px-/);
+    const apollo = byId(commons, "c:189395").sizes; // 2400 wide: original for the large size
+    assert.deepEqual(apollo.map(([width]) => width), [1920, 2400]);
+    assert.equal(apollo[1][1], "https://upload.wikimedia.org/wikipedia/commons/f/fe/Apollo_15_flag%2C_rover%2C_LM%2C_Irwin.jpg");
+  });
+  check("aicImages builds IIIF URLs from the response's own iiif_url, at the widths the server allows", () => {
+    assert.equal(art.length, 3);
+    const wave = byId(art, "a:89503");
+    assert.equal(wave.artist, "Katsushika Hokusai");
+    assert.equal(wave.license, "Public domain");
+    assert.equal(wave.link, "https://www.artic.edu/artworks/89503");
+    assert.match(wave.title, /^Under the Wave off Kanagawa .*, 1830\/33$/);
+    assert.deepEqual(
+      wave.sizes.map(([width]) => width),
+      [1686, 3000],
+    );
+    assert.equal(wave.sizes[1][1], "https://www.artic.edu/iiif/2/2fa24f36-cc26-41b6-4b49-12bba2a6c1c8/full/3000,/0/default.jpg");
+    const narrow = photos.aicImages({ data: [{ id: 1, title: "T", image_id: "x", thumbnail: { width: 2500, height: 1500 } }] });
+    assert.deepEqual(narrow[0].sizes.map(([width]) => width), [1686]);
+    assert.match(narrow[0].sizes[0][1], /^https:\/\/www\.artic\.edu\/iiif\/2\/x\/full\/1686,\/0\/default\.jpg$/);
+  });
+  check("normalisers skip rows without an image and cope with empty answers", () => {
+    assert.deepEqual(photos.commonsImages({}), []);
+    assert.deepEqual(photos.commonsImages(null), []);
+    assert.deepEqual(photos.aicImages({ data: [{ id: 1, title: "No image" }] }), []);
+    assert.deepEqual(photos.commonsImages({ query: { pages: [{ pageid: 1, imageinfo: [{ url: "javascript:alert(1)", width: 3000, height: 2000 }] }] } }), []);
+  });
+
+  check("keepImage wants wide, large JPEGs with a fit title", () => {
+    const kept = [...commons, ...art].filter(photos.keepImage).map((image) => image.id);
+    // Square, too short a panorama (878 high), nearly square and portrait are all out.
+    assert.deepEqual(kept, ["c:5254504", "a:89503", "a:77333"]);
+    const base = { sizes: [[1920, "u"]], width: 3000, height: 2000, mime: "image/jpeg", title: "Hills" };
+    assert.ok(photos.keepImage(base));
+    assert.ok(!photos.keepImage({ ...base, width: 1800, height: 1200 }), "too narrow");
+    assert.ok(!photos.keepImage({ ...base, width: 2800, height: 980 }), "too short");
+    assert.ok(photos.keepImage({ ...base, width: 9000, height: 3000 }), "a 3:1 panorama is fine");
+    assert.ok(!photos.keepImage({ ...base, width: 9000, height: 2900 }), "wider than 3:1 is not");
+    assert.ok(!photos.keepImage({ ...base, mime: "image/png" }), "PNG");
+    assert.ok(!photos.keepImage({ ...base, sizes: [] }), "no URL");
+    for (const title of ["Bathers at Asnières", "Still Life with Game", "Lion skull", "Aerial view during rescue operations", "The Dead Christ"]) {
+      assert.ok(!photos.keepImage({ ...base, title }), title);
+    }
+    assert.ok(photos.keepImage({ ...base, title: "Dead Sea salt formation" }), "Dead Sea is fine");
+  });
+  check("dedupe keeps one impression of the same print", () => {
+    const kept = photos.dedupe(art.filter(photos.keepImage)).map((image) => image.id);
+    assert.deepEqual(kept, ["a:89503"]);
+    assert.equal(photos.dedupe([...commons, ...commons]).length, commons.length);
+  });
+
+  check("stripHtml turns Commons' artist HTML into text", () => {
+    assert.equal(photos.stripHtml('<div class="fn value">\nNASA/Bill Anders</div>'), "NASA/Bill Anders");
+    assert.equal(
+      photos.stripHtml('NASA / <a href="https://en.wikipedia.org/wiki/Buzz_Aldrin" class="extiw" title="en:Buzz Aldrin">Buzz Aldrin</a>'),
+      "NASA / Buzz Aldrin",
+    );
+    assert.equal(photos.stripHtml("Photo: <b>Ann</b> , <i>Bo</i>"), "Photo: Ann, Bo");
+    assert.equal(photos.stripHtml("Tom &amp; Jerry &#8211; &#x41;&nbsp;&bogus;"), "Tom & Jerry – A &bogus;");
+    assert.equal(photos.stripHtml("&#99999999;"), "&#99999999;");
+    assert.equal(photos.stripHtml(undefined), "");
+  });
+
+  check("imageUrl picks the smallest size that covers the screen", () => {
+    const image = { width: 6000, height: 3600, sizes: [[1920, "s"], [3840, "l"]] };
+    assert.equal(photos.imageUrl(image, 1920, 1080), "s");
+    assert.equal(photos.imageUrl(image, 2560, 1440), "l");
+    assert.equal(photos.imageUrl(image, 7680, 4320), "l", "nothing bigger: the largest");
+    // A 2.4:1 picture on a 1920x1080 screen is scaled to 2592 wide to cover it.
+    const wide = { width: 4800, height: 2000, sizes: [[1920, "s"], [3840, "l"]] };
+    assert.equal(photos.imageUrl(wide, 1920, 1080), "l");
+    assert.equal(photos.imageUrl({ sizes: [] }, 1920, 1080), "");
+  });
+
+  const pools = {
+    a: { images: [{ id: "a1", cat: "a" }, { id: "a2", cat: "a" }] },
+    b: { images: [{ id: "b1", cat: "b" }] },
+    c: { images: [{ id: "c1", cat: "c" }] },
+  };
+  const first = () => 0; // always the first option
+  const last = () => 0.999; // always the last option
+  check("pickNext only picks from ticked categories", () => {
+    for (let i = 0; i < 50; i += 1) assert.notEqual(photos.pickNext(pools, ["a", "b"]).cat, "c");
+    assert.equal(photos.pickNext(pools, ["b"], [], [], first).id, "b1");
+    assert.equal(photos.pickNext(pools, ["a", "b"], [], [], last).id, "b1");
+  });
+  check("pickNext skips recent and hidden pictures", () => {
+    assert.equal(photos.pickNext(pools, ["a"], ["a1"], [], first).id, "a2");
+    assert.equal(photos.pickNext(pools, ["a"], [], new Set(["a1"]), first).id, "a2");
+    // b's only picture is recent, so a fresh one from a wins whatever the dice say.
+    assert.equal(photos.pickNext(pools, ["a", "b"], ["b1"], [], last).cat, "a");
+  });
+  check("pickNext repeats an older picture rather than show nothing, but not the one showing", () => {
+    assert.equal(photos.pickNext(pools, ["a"], ["a2", "a1"], [], first).id, "a2");
+    assert.equal(photos.pickNext(pools, ["b"], ["b1"], []), null, "the only picture is the one showing");
+    assert.equal(photos.pickNext(pools, ["a"], [], ["a1", "a2"]), null);
+    assert.equal(photos.pickNext({}, ["a"]), null, "no pool yet");
+    assert.equal(photos.pickNext({ a: { images: [] }, b: pools.b }, ["a", "b"], [], [], first).id, "b1");
+  });
+
+  check("isDue: every new tab changes on load only", () => {
+    const now = new Date(2026, 10, 18, 15, 0).getTime();
+    assert.equal(photos.isDue(now - 1000, "tab", now, true), true);
+    assert.equal(photos.isDue(now - 3 * 3600_000, "tab", now, false), false);
+  });
+  check("isDue: 15 minutes and hourly are rolling", () => {
+    const now = new Date(2026, 10, 18, 15, 0).getTime();
+    assert.equal(photos.isDue(now - 14 * 60_000, "15m", now), false);
+    assert.equal(photos.isDue(now - 15 * 60_000, "15m", now), true);
+    assert.equal(photos.isDue(now - 59 * 60_000, "hour", now, true), false);
+    assert.equal(photos.isDue(now - 60 * 60_000, "hour", now), true);
+  });
+  check("isDue: daily changes at local midnight", () => {
+    const evening = new Date(2026, 10, 18, 23, 50).getTime();
+    assert.equal(photos.isDue(evening, "day", new Date(2026, 10, 18, 23, 59).getTime()), false);
+    assert.equal(photos.isDue(evening, "day", new Date(2026, 10, 19, 0, 1).getTime()), true);
+    const morning = new Date(2026, 10, 18, 0, 5).getTime();
+    assert.equal(photos.isDue(morning, "day", new Date(2026, 10, 18, 23, 55).getTime(), true), false);
+    assert.equal(photos.isDue(morning, "nonsense", new Date(2026, 10, 19, 0, 5).getTime()), true, "unknown means daily");
+    assert.equal(photos.isDue(morning, "toString", morning + 60_000), false, "not fooled by Object.prototype");
+  });
+  check("isDue: nothing shown yet, or a clock set back, means due", () => {
+    const now = Date.now();
+    for (const refresh of ["tab", "15m", "hour", "day"]) {
+      assert.equal(photos.isDue(undefined, refresh, now), true);
+      assert.equal(photos.isDue(0, refresh, now), true);
+      assert.equal(photos.isDue(now + 3600_000, refresh, now), true);
+    }
+  });
+
+  check("poolNeedsFetch: missing, empty, stale or from other queries; not while locked or backing off", () => {
+    const category = photos.PHOTO_CATEGORIES[0];
+    const now = Date.now();
+    const fresh = freshPool(category, now);
+    assert.equal(photos.poolNeedsFetch(null, category, now), true);
+    assert.equal(photos.poolNeedsFetch({ ...fresh, images: [] }, category, now), true);
+    assert.equal(photos.poolNeedsFetch(fresh, category, now), false);
+    assert.equal(photos.poolNeedsFetch({ ...fresh, at: now - 8 * 86400_000 }, category, now), true);
+    assert.equal(photos.poolNeedsFetch({ ...fresh, q: "older queries" }, category, now), true);
+    assert.equal(photos.poolNeedsFetch({ fetchingAt: now - 10_000 }, category, now), false, "another tab is on it");
+    assert.equal(photos.poolNeedsFetch({ fetchingAt: now - 120_000 }, category, now), true, "that tab gave up");
+    assert.equal(photos.poolNeedsFetch({ retryAt: now + 60_000 }, category, now), false);
+    assert.equal(photos.poolNeedsFetch({ retryAt: now - 1 }, category, now), true);
+  });
+  // A pool as refreshPool() writes it, fetched just now.
+  function freshPool(category, now) {
+    return { q: JSON.stringify(category.searches ?? category.must), at: now, images: [{ id: "x" }] };
+  }
+
+  {
+    // Run outside check() because it is async; the fake fetch answers instantly.
+    const answer = (body) => ({ ok: true, json: async () => body, headers: new Map() });
+    const japanese = photos.PHOTO_CATEGORIES.find((c) => c.id === "art-japanese");
+    const requested = [];
+    const fakeFetch = async (url) => {
+      requested.push(url);
+      return answer(fixture("aic-search.json"));
+    };
+    const batches = [];
+    const result = await photos.fetchCategoryImages(japanese, {
+      fetch: fakeFetch,
+      rand: () => 0,
+      onBatch: (images) => batches.push(images.map((image) => image.id)),
+    });
+    check("fetchCategoryImages (AIC) asks for public-domain works with images, two different pages", () => {
+      assert.equal(requested.length, 2);
+      const [one, two] = requested.map((url) => JSON.parse(url.searchParams.get("params")));
+      const must = JSON.stringify(one.query.bool.must);
+      assert.match(must, /"is_public_domain":true/);
+      assert.match(must, /"exists":\{"field":"image_id"\}/);
+      assert.match(must, /"place_of_origin.keyword":"Japan"/);
+      // The first fetch knows of one page only; the answer says 63, of which the first 10 can be reached.
+      assert.deepEqual([one.page, two.page], [1, 2]);
+      assert.equal(result.pages, 10);
+      assert.equal(result.raw, 6);
+      // Both pages are the same fixture: filtered, deduplicated and tagged with the category.
+      assert.deepEqual(result.images.map((image) => [image.id, image.cat]), [["a:89503", "art-japanese"]]);
+    });
+    check("fetchCategoryImages reports the usable images after each request, for an early first picture", () => {
+      assert.deepEqual(batches, [["a:89503"], ["a:89503"]]);
+    });
+    const failing = async () => ({ ok: false, status: 429, headers: new Map([["retry-after", "30"]]) });
+    let error = null;
+    try {
+      await photos.fetchCategoryImages(japanese, { fetch: failing });
+    } catch (caught) {
+      error = caught;
+    }
+    check("fetchCategoryImages reports the status and Retry-After of a refusal", () => {
+      assert.ok(error);
+      assert.equal(error.status, 429);
+      assert.equal(error.retryAfter, 30);
+    });
+  }
+
+  check("every category has a unique id, a name, a group and a query", () => {
+    const ids = photos.PHOTO_CATEGORIES.map((c) => c.id);
+    assert.equal(new Set(ids).size, ids.length);
+    for (const c of photos.PHOTO_CATEGORIES) {
+      assert.ok(c.name && ["photo", "art"].includes(c.group), c.id);
+      assert.ok(c.source === "commons" ? c.searches.length > 0 : c.must.length > 0, c.id);
+    }
+    for (const id of photos.DEFAULT_PHOTO_CATEGORIES) assert.ok(ids.includes(id), id);
+    assert.ok(photos.REFRESH_OPTIONS.some(({ id }) => id === photos.DEFAULT_REFRESH));
+  });
+  const { BACKGROUNDS } = await page("background.js");
+  check("the Photos style is in the catalogue with a preview", () => {
+    const style = BACKGROUNDS.find((b) => b.id === "photos");
+    assert.equal(style?.kind, "photo");
+    assert.match(style.preview, /^url\("data:image\/svg\+xml,/);
+  });
+}
+
 console.log(`${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

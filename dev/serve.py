@@ -6,6 +6,7 @@ Serves extension/ as the site root and dev/ under /dev/, and slips dev/shim.js
 the way out. Nothing on disk is modified. Standard library only.
 
     /slow?s=N   waits N seconds, then answers 204 (holds the page's load event)
+    /dev/iiif/NAME/...  dev/fixtures/NAME.svg (the shim's stand-in Art Institute images)
     /dev/...    files from dev/
     /...        files from extension/
 """
@@ -44,7 +45,11 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        if url.path.startswith("/dev/"):
+        if url.path.startswith("/dev/iiif/"):
+            # /dev/iiif/NAME/full/WIDTH,/0/default.jpg, as the Art Institute's IIIF server lays it out.
+            name = url.path[len("/dev/iiif/") :].split("/", 1)[0]
+            base, rel = DEV, f"fixtures/{name}.svg"
+        elif url.path.startswith("/dev/"):
             base, rel = DEV, url.path[len("/dev/") :]
         else:
             base, rel = EXT, url.path.lstrip("/")

@@ -51,11 +51,37 @@ button { cursor: pointer; }
   content: ""; position: absolute; inset: 0;
   background: radial-gradient(120% 80% at 50% 0%, transparent 0%, rgb(7 8 13 / var(--vignette, 0.6)) 80%);
 }
+/* Photos: two pictures stacked; the newer one (.top) fades in over the older,
+   which is only let go once the fade is over. With animation on, the picture
+   showing drifts in very slowly. */
+.backdrop .photo { position: absolute; inset: 0; display: none; overflow: hidden; }
+.backdrop[data-kind="photo"] .photo { display: block; }
+.backdrop .photo img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transition: opacity 1.2s ease;
+}
+.backdrop .photo img.top { z-index: 1; }
+.backdrop .photo img.on { opacity: 1; }
+.backdrop .photo img.instant, .backdrop.still .photo img { transition: none; }
+.backdrop:not(.still) .photo img.on { animation: photo-drift 90s ease-in-out infinite alternate; }
+@keyframes photo-drift {
+  from { transform: scale(1.01); }
+  to { transform: scale(1.07) translate3d(-1%, -0.7%, 0); }
+}
+/* Keeps the light text readable over bright pictures (pale paper prints
+   especially): darkest at the top, where the clock is, and along the bottom,
+   under the credit line. */
+.backdrop[data-kind="photo"]::after {
+  content: ""; position: absolute; inset: 0; z-index: 1;
+  background:
+    linear-gradient(180deg, rgb(4 6 14 / 0.58), rgb(4 6 14 / 0.1) 40%, rgb(4 6 14 / 0.12) 72%, rgb(4 6 14 / 0.5)),
+    rgb(4 6 14 / 0.2);
+}
 .backdrop .scene { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }
 .backdrop[data-kind="canvas"] .scene { display: block; }
 /* Weather drawn over any style. Above the glow vignette (::after), which would
    otherwise darken it toward the edges. */
-.backdrop .weather-layer { position: absolute; inset: 0; width: 100%; height: 100%; display: none; z-index: 1; }
+.backdrop .weather-layer { position: absolute; inset: 0; width: 100%; height: 100%; display: none; z-index: 2; }
 .backdrop[data-fx] .weather-layer { display: block; }
 /* Each blob wanders its own looping path, swelling and fading as it goes.
    The cycles are short enough to see the movement within a few seconds of
@@ -115,16 +141,43 @@ body::after {
   backdrop-filter: blur(22px) saturate(150%);
 }
 
-/* Blurring what's behind a card only pays off over the detailed canvas scenes.
-   Over a smooth glow there is nothing to blur, and the blur's low-resolution
-   passes turn the gradient into visible blocks, so it is switched off there.
-   It stays on while the weather layer runs, so cards blur the streaks behind
-   their text. */
-.backdrop:not([data-kind="canvas"]):not([data-fx]) ~ .wrap :is(.card, .glass) { backdrop-filter: none; }
+/* Blurring what's behind a card only pays off over the detailed canvas scenes
+   and photos. Over a smooth glow there is nothing to blur, and the blur's
+   low-resolution passes turn the gradient into visible blocks, so it is
+   switched off there. It stays on while the weather layer runs, so cards blur
+   the streaks behind their text. */
+.backdrop:not([data-kind="canvas"]):not([data-kind="photo"]):not([data-fx]) ~ .wrap :is(.card, .glass) { backdrop-filter: none; }
 
 /* The cards' own tint is a gradient image; this colour sits under it and
    darkens the glass over the brighter parts of the Sky and Daylight styles. */
 .backdrop:is([data-style="sky"], [data-style="daylight"]) ~ .wrap :is(.card, .glass) { background-color: rgb(6 10 22 / 0.38); }
+/* Photos can be brighter still, and busier. */
+.backdrop[data-kind="photo"] ~ .wrap :is(.card, .glass) { background-color: rgb(6 9 18 / 0.5); }
+.backdrop[data-kind="photo"] ~ .wrap :is(.clock-block, .search-hint) { filter: drop-shadow(0 1px 10px rgb(0 0 0 / 0.55)); }
+.backdrop[data-kind="photo"] ~ .wrap .joke { color: var(--ink-2); }
+
+/* ---------- photo credit ---------- */
+.photo-credit {
+  position: fixed; right: 16px; bottom: 14px; z-index: 2;
+  display: flex; align-items: center; gap: 2px;
+  max-width: min(720px, calc(100vw - 32px)); padding: 2px 3px 2px 12px; border-radius: 12px;
+  background: rgb(6 9 18 / 0.45); backdrop-filter: blur(12px);
+  font-size: 12px; color: var(--ink-2);
+}
+.photo-link, .photo-msg { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.photo-link { color: inherit; text-decoration: none; }
+.photo-link[href]:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+/* Art titles can run to a whole series name; cut short, the artist and
+   source still fit. The full credit is in the link's tooltip. */
+.photo-title {
+  display: inline-block; max-width: 44ch; vertical-align: bottom;
+  overflow: hidden; text-overflow: ellipsis; color: var(--ink);
+}
+.photo-credit .icon-btn { width: 30px; height: 30px; border-radius: 9px; flex: none; }
+.photo-credit .icon { width: 16px; height: 16px; }
+.photo-link[hidden] ~ .photo-hide { display: none; }
+/* Room at the bottom of the page so the credit line never sits on a card. */
+body:has(> .photo-credit:not([hidden])) .wrap { padding-bottom: 72px; }
 
 /* ---------- layout ---------- */
 .wrap {
@@ -357,7 +410,20 @@ textarea::placeholder, input::placeholder { color: var(--ink-3); opacity: 1; }
   border-color: var(--accent); box-shadow: 0 0 0 2px hsl(220 100% 75% / 0.35);
 }
 .field { display: grid; gap: 7px; }
-.field > label { font-size: 12.5px; color: var(--ink-2); }
+.field > label, .field-label { font-size: 12.5px; color: var(--ink-2); }
+.chip-group { display: grid; gap: 6px; }
+.chip-heading { font-size: 11.5px; color: var(--ink-3); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { position: relative; display: inline-flex; cursor: pointer; }
+.chip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.chip span {
+  padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--glass); font-size: 12.5px; color: var(--ink-2);
+  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+}
+.chip:hover span { border-color: var(--line-hi); }
+.chip input:checked + span { color: var(--ink); background: hsl(220 100% 70% / 0.2); border-color: hsl(220 100% 78% / 0.55); }
+.chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
 .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .row { display: flex; gap: 8px; }
 .btn {
@@ -400,7 +466,8 @@ input:disabled, textarea:disabled { opacity: 0.45; cursor: not-allowed; }
   .field-pair { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .backdrop i { animation: none; }
+  .backdrop i, .backdrop .photo img.on { animation: none; }
+  .backdrop .photo img { transition: none; }
   .wrap, .panel, .panel.open, .joke.in, .joke.revealed .joke-punchline { transition: none; }
 }
 

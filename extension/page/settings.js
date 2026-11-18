@@ -3,6 +3,7 @@ import { ENGINES } from "./search.js";
 import { findCities } from "./weather.js";
 import { BACKGROUNDS, previewOf } from "./background.js";
 import { parseOwnJokes } from "./jokes.js";
+import { PHOTO_CATEGORIES, DEFAULT_PHOTO_CATEGORIES, REFRESH_OPTIONS, DEFAULT_REFRESH } from "./photos.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -25,6 +26,9 @@ const DEFAULTS = {
   animate: true,
   weatherFx: true, // the background reacts to the weather in `city`
   forecast: false, // show the 7-day forecast list for `city`
+  photoCategories: DEFAULT_PHOTO_CATEGORIES, // ids from PHOTO_CATEGORIES, mixed together
+  photoRefresh: DEFAULT_REFRESH, // id from REFRESH_OPTIONS
+  photoHidden: [], // ids of pictures not to show again, newest last
   updatedAt: 0,
 };
 
@@ -47,6 +51,9 @@ export async function initSettings() {
   const animate = $("set-animate");
   const weatherFx = $("set-weather-fx");
   const forecast = $("set-forecast");
+  const photoOptions = $("photo-options");
+  const photoRefresh = $("set-photo-refresh");
+  const photoHint = $("photo-hint");
 
   const swatches = BACKGROUNDS.map((style) => {
     const button = document.createElement("button");
@@ -61,6 +68,29 @@ export async function initSettings() {
     $("bg-picker").append(button);
     return { id: style.id, button };
   });
+  const photoBoxes = PHOTO_CATEGORIES.map((category) => {
+    const label = document.createElement("label");
+    label.className = "chip";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.value = category.id;
+    const text = document.createElement("span");
+    text.textContent = category.name;
+    label.append(box, text);
+    $(`photo-chips-${category.group}`).append(label);
+    box.addEventListener("change", () => {
+      const ticked = photoBoxes.filter((other) => other.checked).map((other) => other.value);
+      if (!ticked.length) {
+        box.checked = true;
+        photoHint.textContent = "Keep at least one ticked.";
+        return;
+      }
+      photoHint.textContent = "";
+      update({ photoCategories: ticked });
+    });
+    return box;
+  });
+  for (const { id, name } of REFRESH_OPTIONS) photoRefresh.add(new Option(name, id));
   const cityInput = $("city-input");
   const cityResults = $("city-results");
   const cityMsg = $("city-msg");
@@ -87,6 +117,9 @@ export async function initSettings() {
     forecast.checked = current.forecast;
     forecast.disabled = !current.city;
     for (const { id, button } of swatches) button.setAttribute("aria-checked", String(id === current.background));
+    photoOptions.hidden = current.background !== "photos";
+    for (const box of photoBoxes) box.checked = current.photoCategories.includes(box.value);
+    photoRefresh.value = current.photoRefresh;
     $("city-current").hidden = !current.city;
     $("city-name").textContent = current.city
       ? [current.city.name, current.city.region].filter(Boolean).join(", ")
@@ -125,6 +158,7 @@ export async function initSettings() {
   animate.addEventListener("change", () => update({ animate: animate.checked }));
   weatherFx.addEventListener("change", () => update({ weatherFx: weatherFx.checked }));
   forecast.addEventListener("change", () => update({ forecast: forecast.checked }));
+  photoRefresh.addEventListener("change", () => update({ photoRefresh: photoRefresh.value }));
 
   function message(text) {
     cityMsg.textContent = text;
@@ -192,6 +226,7 @@ export async function initSettings() {
   function open() {
     cityResults.replaceChildren();
     message("");
+    photoHint.textContent = "";
     fillForm();
     if (!dialog.open) dialog.showModal();
   }
@@ -199,6 +234,8 @@ export async function initSettings() {
   fillForm();
   return {
     get: () => current,
+    /** Changes some settings, as if they were changed in the dialog. */
+    set: update,
     open,
     onChange: (listener) => listeners.add(listener),
   };

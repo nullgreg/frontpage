@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3000" height="2000" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice">
+  <!-- Stand-in picture for the dev shim: hills at dusk. -->
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#20386b"/><stop offset=".55" stop-color="#c27a7c"/><stop offset="1" stop-color="#f4c182"/>
+  </linearGradient>
+  <rect width="300" height="200" fill="url(#sky)"/>
+  <circle cx="205" cy="104" r="14" fill="#ffe6bd"/>
+  <path d="M0 132 52 88 86 112 136 64 188 116 232 92 300 134V200H0Z" fill="#3a3657"/>
+  <path d="M0 160 66 130 120 152 184 122 248 158 300 146V200H0Z" fill="#1d1d33"/>
+  <path d="M0 184 80 166 150 182 230 164 300 178V200H0Z" fill="#0f1020"/>
+</svg>

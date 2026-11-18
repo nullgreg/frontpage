@@ -1,0 +1,183 @@
+{
+ "batchcomplete": true,
+ "continue": {
+  "gsroffset": 50,
+  "continue": "gsroffset||"
+ },
+ "query": {
+  "pages": [
+   {
+    "pageid": 189395,
+    "ns": 6,
+    "title": "File:Apollo 15 flag, rover, LM, Irwin.jpg",
+    "index": 36,
+    "imagerepository": "local",
+    "imageinfo": [
+     {
+      "size": 1357449,
+      "width": 2400,
+      "height": 2400,
+      "thumburl": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Apollo_15_flag%2C_rover%2C_LM%2C_Irwin.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "thumbwidth": 2560,
+      "thumbheight": 2560,
+      "thumbattribs": {
+       "src": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Apollo_15_flag%2C_rover%2C_LM%2C_Irwin.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+       "decoding": "async",
+       "loading": "lazy",
+       "width": 2560,
+       "height": 2560
+      },
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Apollo_15_flag%2C_rover%2C_LM%2C_Irwin.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "descriptionurl": "https://commons.wikimedia.org/wiki/File:Apollo_15_flag,_rover,_LM,_Irwin.jpg",
+      "descriptionshorturl": "https://commons.wikimedia.org/wiki/Special:Redirect/page/189395",
+      "extmetadata": {
+       "ObjectName": {
+        "value": "Apollo 15 flag, rover, LM, Irwin",
+        "source": "mediawiki-metadata"
+       },
+       "Artist": {
+        "value": "Astronaut David R. Scott, Apollo 15 commander.",
+        "source": "commons-desc-page"
+       },
+       "LicenseShortName": {
+        "value": "Public domain",
+        "source": "commons-desc-page",
+        "hidden": ""
+       }
+      },
+      "mime": "image/jpeg"
+     }
+    ]
+   },
+   {
+    "pageid": 996668,
+    "ns": 6,
+    "title": "File:Sunset may 2006 panorama.jpg",
+    "index": 27,
+    "imagerepository": "local",
+    "imageinfo": [
+     {
+      "size": 291608,
+      "width": 2200,
+      "height": 878,
+      "thumburl": "https://upload.wikimedia.org/wikipedia/commons/2/22/Sunset_may_2006_panorama.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "thumbwidth": 2560,
+      "thumbheight": 1022,
+      "thumbattribs": {
+       "src": "https://upload.wikimedia.org/wikipedia/commons/2/22/Sunset_may_2006_panorama.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+       "decoding": "async",
+       "loading": "lazy",
+       "width": 2560,
+       "height": 1022
+      },
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/22/Sunset_may_2006_panorama.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "descriptionurl": "https://commons.wikimedia.org/wiki/File:Sunset_may_2006_panorama.jpg",
+      "descriptionshorturl": "https://commons.wikimedia.org/wiki/Special:Redirect/page/996668",
+      "extmetadata": {
+       "ObjectName": {
+        "value": "Sunset may 2006 panorama",
+        "source": "mediawiki-metadata"
+       },
+       "Artist": {
+        "value": "<p><br style=\"clear:both\">\n</p>\n<table align=\"CENTER\" style=\"width:80%; background-color:#f7f8ff; border:2px solid #8888aa; padding:5px;\">\n\n<tbody><tr>\n<td><table border=\"0\" width=\"100%\" style=\"background-color:#f7f8ff;\">\n\t<tbody><tr style=\"font-family: Segoe UI, Trebuchet MS, serif;\">\n\t\t<td align=\"center\" valign=\"top\">\n\t\t<div style=\"padding-bottom:25px;\"><span style=\"font-size:large\"><b><a href=\"https://en.wikipedia.org/wiki/User:Fir0002\" class=\"extiw\" title=\"en:User:Fir0002\">fir0002</a> <br> flagstaffotos [at] gmail.com</b></span></div>\n\t\t<div style=\"font-size:11pt\">Canon 20D + Canon 17-40mm f/4 L</div>\n</td>\n\t\t<td valign=\"top\" align=\"left\">\n                    <table border=\"0\" width=\"240\" style=\"background-color:#f7f8ff;\">\n                         <tbody><tr>\n                         <td valign=\"top\"><figure class=\"mw-halign-left\" typeof=\"mw:File\"><a href=\"//commons.wikimedia.org/wiki/File:Canon_17-40_f4_L_lens.jpg\" class=\"mw-file-description\"><img src=\"https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Canon_17-40_f4_L_lens.jpg/120px-Canon_17-40_f4_L_lens.jpg?utm_source=commons.wikimedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail\" decoding=\"async\" loading=\"lazy\" width=\"120\" height=\"80\" class=\"mw-file-element\" srcset=\"https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Canon_17-40_f4_L_lens.jpg/250px-Canon_17-40_f4_L_lens.jpg?utm_source=commons.wikimedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail 2x\" data-file-width=\"1600\" data-file-height=\"1067\"></a><figcaption></figcaption></figure></td>\n                         <td valign=\"top\"><span typeof=\"mw:File\"><a href=\"//commons.wikimedia.org/wiki/File:Canon_17-40_f4_L_lens02.jpg\" class=\"mw-file-description\"><img src=\"https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Canon_17-40_f4_L_lens02.jpg/120px-Canon_17-40_f4_L_lens02.jpg?utm_source=commons.wikimedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail\" decoding=\"async\" loading=\"lazy\" width=\"120\" height=\"80\" class=\"mw-file-element\" srcset=\"https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Canon_17-40_f4_L_lens02.jpg/250px-Canon_17-40_f4_L_lens02.jpg?utm_source=commons.wikimedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail 2x\" data-file-width=\"1600\" data-file-height=\"1067\"></a></span></td>\n                         </tr>\n                         </tbody></table>\n\t\t</td>\n\t</tr>\n</tbody></table>\n</td></tr></tbody></table>",
+        "source": "commons-desc-page"
+       },
+       "LicenseShortName": {
+        "value": "GFDL 1.2",
+        "source": "commons-desc-page",
+        "hidden": ""
+       }
+      },
+      "mime": "image/jpeg"
+     }
+    ]
+   },
+   {
+    "pageid": 1669175,
+    "ns": 6,
+    "title": "File:Comets Kick up Dust in Helix Nebula (PIA09178).jpg",
+    "index": 47,
+    "imagerepository": "local",
+    "imageinfo": [
+     {
+      "size": 7573824,
+      "width": 4279,
+      "height": 3559,
+      "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/Comets_Kick_up_Dust_in_Helix_Nebula_%28PIA09178%29.jpg/3840px-Comets_Kick_up_Dust_in_Helix_Nebula_%28PIA09178%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "thumbwidth": 2560,
+      "thumbheight": 2129,
+      "thumbattribs": {
+       "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/Comets_Kick_up_Dust_in_Helix_Nebula_%28PIA09178%29.jpg/3840px-Comets_Kick_up_Dust_in_Helix_Nebula_%28PIA09178%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+       "decoding": "async",
+       "loading": "lazy",
+       "width": 2560,
+       "height": 2129
+      },
+      "url": "https://upload.wikimedia.org/wikipedia/commons/7/7f/Comets_Kick_up_Dust_in_Helix_Nebula_%28PIA09178%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "descriptionurl": "https://commons.wikimedia.org/wiki/File:Comets_Kick_up_Dust_in_Helix_Nebula_(PIA09178).jpg",
+      "descriptionshorturl": "https://commons.wikimedia.org/wiki/Special:Redirect/page/1669175",
+      "extmetadata": {
+       "ObjectName": {
+        "value": "Comets Kick up Dust in Helix Nebula (PIA09178)",
+        "source": "mediawiki-metadata"
+       },
+       "Artist": {
+        "value": "NASA/JPL-Caltech/Univ. of Ariz.",
+        "source": "commons-desc-page"
+       },
+       "LicenseShortName": {
+        "value": "Public domain",
+        "source": "commons-desc-page",
+        "hidden": ""
+       }
+      },
+      "mime": "image/jpeg"
+     }
+    ]
+   },
+   {
+    "pageid": 5254504,
+    "ns": 6,
+    "title": "File:ESO - The Carina Nebula (by).jpg",
+    "index": 30,
+    "imagerepository": "local",
+    "imageinfo": [
+     {
+      "size": 12246989,
+      "width": 5828,
+      "height": 3524,
+      "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/ESO_-_The_Carina_Nebula_%28by%29.jpg/3840px-ESO_-_The_Carina_Nebula_%28by%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "thumbwidth": 2560,
+      "thumbheight": 1548,
+      "thumbattribs": {
+       "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/ESO_-_The_Carina_Nebula_%28by%29.jpg/3840px-ESO_-_The_Carina_Nebula_%28by%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+       "decoding": "async",
+       "loading": "lazy",
+       "width": 2560,
+       "height": 1548
+      },
+      "url": "https://upload.wikimedia.org/wikipedia/commons/4/45/ESO_-_The_Carina_Nebula_%28by%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "descriptionurl": "https://commons.wikimedia.org/wiki/File:ESO_-_The_Carina_Nebula_(by).jpg",
+      "descriptionshorturl": "https://commons.wikimedia.org/wiki/Special:Redirect/page/5254504",
+      "extmetadata": {
+       "ObjectName": {
+        "value": "ESO - The Carina Nebula (by)",
+        "source": "mediawiki-metadata"
+       },
+       "Artist": {
+        "value": "<a rel=\"nofollow\" class=\"external text\" href=\"http://www.eso.org/\">ESO</a>/IDA/Danish 1.5 m/R.Gendler, J-E. Ovaldsen, C. Thöne, and C. Feron.",
+        "source": "commons-desc-page"
+       },
+       "LicenseShortName": {
+        "value": "CC BY 4.0",
+        "source": "commons-desc-page",
+        "hidden": ""
+       }
+      },
+      "mime": "image/jpeg"
+     }
+    ]
+   }
+  ]
+ }
+}

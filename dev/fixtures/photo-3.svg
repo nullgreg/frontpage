@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3000" height="2000" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice">
+  <!-- Stand-in picture for the dev shim: a nebula. -->
+  <radialGradient id="glow" cx=".62" cy=".42" r=".55">
+    <stop offset="0" stop-color="#e8a6ff"/><stop offset=".35" stop-color="#7b3fb0"/><stop offset=".7" stop-color="#1c1450"/><stop offset="1" stop-color="#05040f"/>
+  </radialGradient>
+  <rect width="300" height="200" fill="url(#glow)"/>
+  <g fill="#fff">
+    <circle cx="30" cy="40" r="1"/><circle cx="80" cy="160" r=".8"/><circle cx="140" cy="30" r="1.2"/>
+    <circle cx="250" cy="170" r="1"/><circle cx="270" cy="50" r=".8"/><circle cx="200" cy="90" r="1.4"/>
+  </g>
+</svg>
