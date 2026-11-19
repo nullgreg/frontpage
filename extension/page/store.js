@@ -1,8 +1,9 @@
 // Thin wrappers around extension storage.
 //
-// "Synced" values live in storage.sync so they follow Firefox Sync. If a value
-// is too big for sync's per-item quota it falls back to storage.local; on read
-// the newer of the two copies (by updatedAt) wins.
+// "Synced" values live in storage.sync so they follow the browser's own sync
+// (Firefox Sync, Chrome Sync). If a value is too big for sync's per-item quota
+// it falls back to storage.local; on read the newer of the two copies (by
+// updatedAt) wins.
 
 export async function getLocal(key, fallback) {
   const found = await browser.storage.local.get(key);
@@ -24,7 +25,7 @@ export async function getSynced(key, fallback) {
   return a ?? b ?? fallback;
 }
 
-/** Resolves true if the value went to Firefox Sync, false if it only fit locally. */
+/** Resolves true if the value went to sync storage, false if it only fit locally. */
 export async function setSynced(key, value) {
   try {
     await browser.storage.sync.set({ [key]: value });

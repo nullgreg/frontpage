@@ -94,6 +94,14 @@
       </button>
     </div>
 
+    <div id="bookmarks-field" class="field" hidden>
+      <span class="field-label">Bookmarks toolbar</span>
+      <button id="bookmarks-import" class="btn" type="button">Import from Firefox…</button>
+      <input id="bookmarks-file" type="file" accept=".json,application/json" hidden>
+      <p class="hint">This browser doesn't let extensions read its bookmarks. In Firefox, choose Bookmarks → Manage Bookmarks → Import and Backup → Backup…, then pick that file here. Import again whenever your toolbar changes.</p>
+      <p id="bookmarks-status" class="hint" aria-live="polite"></p>
+    </div>
+
     <div class="field">
       <label for="city-input">Weather city</label>
       <div id="city-current" class="city-current" hidden>
@@ -154,7 +162,7 @@
         <label for="set-photo-refresh">New picture</label>
         <select id="set-photo-refresh"></select>
       </div>
-      <p class="hint">From Wikimedia Commons featured pictures and the Art Institute of Chicago. Each picture is credited at the bottom of the page.</p>
+      <p class="hint">From Wikimedia Commons featured pictures and the Art Institute of Chicago. Click the background to see who made the picture showing.</p>
     </div>
     <label class="check">
       <input id="set-animate" type="checkbox">

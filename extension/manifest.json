@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Frontpage",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "A dark-glass new tab and home page: toolbar bookmarks by folder, clock, weather, notes, photo backgrounds and silly jokes.",
   "icons": {
     "48": "icons/icon.svg",

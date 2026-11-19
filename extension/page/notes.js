@@ -3,7 +3,7 @@ import { icon } from "./dom.js";
 
 const $ = (id) => document.getElementById(id);
 
-/** The slide-out scratchpad and to-do list, saved through Firefox Sync. */
+/** The slide-out scratchpad and to-do list, saved through browser sync. */
 export async function initNotes() {
   const panel = $("notes-panel");
   const toggle = $("notes-toggle");

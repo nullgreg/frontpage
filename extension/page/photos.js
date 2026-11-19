@@ -494,6 +494,7 @@ async function readPools(ids) {
 const STATE_KEY = "frontpage.photo";
 const RECENT = 30;
 const FADE_MS = 1200; // matches the opacity transition in style.css
+const CREDIT_MS = 5000; // how long the credit shows after a click on the background
 const MAX_FAILURES = 3;
 
 function readState() {
@@ -548,6 +549,7 @@ export function createPhotoLayer(root, { credit, onHide } = {}) {
   let timer = 0;
   let fadeTimer = 0;
   let nextTimer = 0;
+  let creditTimer = 0;
 
   // The screen in device pixels: a window can be made larger than it opened.
   const screenSize = () => {
@@ -561,12 +563,35 @@ export function createPhotoLayer(root, { credit, onHide } = {}) {
   const acceptable = (image) =>
     Boolean(image?.sizes?.length) && options.categories.includes(image.cat) && !hidden.has(image.id);
 
+  // The credit stays out of sight until the background is clicked, then
+  // fades in for CREDIT_MS (longer while the pointer or focus is on it).
+  // A message (loading, or a failure) stays up until it's cleared.
+  function revealCredit() {
+    if (!credit || credit.hidden) return;
+    credit.classList.add("shown");
+    concealCreditSoon();
+  }
+
+  function concealCreditSoon() {
+    clearTimeout(creditTimer);
+    creditTimer = setTimeout(() => {
+      if (!note.hidden || credit.matches(":hover, :focus-within")) return;
+      credit.classList.remove("shown");
+    }, CREDIT_MS);
+  }
+
   function message(text) {
     if (!credit) return;
     note.textContent = text;
     note.hidden = !text;
     link.hidden = Boolean(text) || !shown;
     credit.hidden = !text && !shown;
+    if (text) {
+      clearTimeout(creditTimer);
+      credit.classList.add("shown");
+    } else if (credit.classList.contains("shown")) {
+      concealCreditSoon();
+    }
   }
 
   function setCredit(image) {
@@ -784,8 +809,22 @@ export function createPhotoLayer(root, { credit, onHide } = {}) {
       img.removeAttribute("src");
     }
     shown = null;
-    if (credit) credit.hidden = true;
+    clearTimeout(creditTimer);
+    if (credit) {
+      credit.hidden = true;
+      credit.classList.remove("shown");
+    }
   }
+
+  // A click on the picture itself, or on the empty page around the cards
+  // (the layout lets those through to the body or the backdrop).
+  document.addEventListener("click", (event) => {
+    const { target } = event;
+    if (!running || !shown || event.button !== 0) return;
+    if (target === document.body || target === document.documentElement || root.contains(target)) revealCredit();
+  });
+  credit?.addEventListener("pointerleave", () => credit.classList.contains("shown") && concealCreditSoon());
+  credit?.addEventListener("focusout", () => credit.classList.contains("shown") && concealCreditSoon());
 
   credit?.querySelector(".photo-next")?.addEventListener("click", () => {
     failures = 0;

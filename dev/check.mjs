@@ -1,4 +1,4 @@
-// Checks for the pure functions in extension/page/. Run: node dev/check.mjs
+// Checks for the pure functions in extension/page/ and dev/safari.mjs. Run: node dev/check.mjs
 // Exit code is non-zero on any failure.
 //
 // Node prints a "Reparsing as ES module" warning when importing the extension's
@@ -592,6 +592,312 @@ check("weather.js imports under Node", () => assert.equal(typeof weather.findCit
     const style = BACKGROUNDS.find((b) => b.id === "photos");
     assert.equal(style?.kind, "photo");
     assert.match(style.preview, /^url\("data:image\/svg\+xml,/);
+  });
+}
+
+// ----- phase 7: bookmarks toolbar, Firefox and Chrome shapes -----
+{
+  const { toolbarNodes, groupsFromNodes } = await page("bookmarks.js");
+  const mark = (title, url) => ({ title, url });
+  const dir = (title, children) => ({ title, children });
+
+  // Firefox: fixed ids, a type on every node, separators with a url of "data:".
+  const firefoxTree = [
+    {
+      id: "root________",
+      children: [
+        { id: "menu________", type: "folder", title: "Bookmarks Menu", children: [mark("Menu only", "https://menu.example/")] },
+        {
+          id: "toolbar_____",
+          type: "folder",
+          title: "Bookmarks Toolbar",
+          children: [
+            { type: "bookmark", ...mark("Loose", "https://loose.example/") },
+            { type: "separator", title: "", url: "data:" },
+            { type: "folder", ...dir("Work", [{ type: "bookmark", ...mark("Mail", "https://mail.example/") }]) },
+          ],
+        },
+        { id: "unfiled_____", type: "folder", title: "Other Bookmarks", children: [] },
+      ],
+    },
+  ];
+
+  // Chrome: numeric ids, no type, folderType on the permanent folders, and
+  // possibly two bars (local and account-synced).
+  const chromeTree = [
+    {
+      id: "0",
+      title: "",
+      children: [
+        { id: "1", title: "Bookmarks bar", folderType: "bookmarks-bar", syncing: false, children: [mark("Local", "https://local.example/")] },
+        { id: "2", title: "Other bookmarks", folderType: "other", syncing: false, children: [mark("Other", "https://other.example/")] },
+        {
+          id: "4",
+          title: "Bookmarks bar",
+          folderType: "bookmarks-bar",
+          syncing: true,
+          children: [
+            mark("Account", "https://account.example/"),
+            mark("Bookmarklet", "javascript:alert(1)"),
+            dir("Reading", [mark("Feed", "https://feed.example/"), dir("Deep", [mark("Nested", "https://nested.example/")])]),
+            dir("Empty", []),
+          ],
+        },
+      ],
+    },
+  ];
+
+  check("toolbarNodes finds Firefox's toolbar by id and nothing else", () => {
+    assert.deepEqual(toolbarNodes(firefoxTree).map((node) => node.title), ["Loose", "", "Work"]);
+  });
+
+  check("toolbarNodes joins both of Chrome's bars, in tree order", () => {
+    assert.deepEqual(toolbarNodes(chromeTree).map((node) => node.title), [
+      "Local",
+      "Account",
+      "Bookmarklet",
+      "Reading",
+      "Empty",
+    ]);
+  });
+
+  check("groupsFromNodes on Firefox: loose bookmarks first, separators skipped", () => {
+    const groups = groupsFromNodes(toolbarNodes(firefoxTree));
+    assert.deepEqual(groups.map((group) => group.title), ["Toolbar", "Work"]);
+    assert.deepEqual(groups[0].sections[0].items.map((item) => item.url), ["https://loose.example/"]);
+  });
+
+  check("groupsFromNodes on Chrome: subfolders become sections, unlinkable and empty skipped", () => {
+    const groups = groupsFromNodes(toolbarNodes(chromeTree));
+    assert.deepEqual(groups.map((group) => group.title), ["Toolbar", "Reading"]);
+    assert.deepEqual(groups[0].sections[0].items.map((item) => item.title), ["Local", "Account"]);
+    assert.deepEqual(groups[1].sections.map((section) => section.title), ["", "Deep"]);
+    assert.equal(groups[1].sections[1].items[0].host, "nested.example");
+  });
+
+  check("toolbarNodes on a tree with no toolbar gives nothing", () => {
+    assert.deepEqual(groupsFromNodes(toolbarNodes([{ id: "0", children: [] }])), []);
+  });
+}
+
+// ----- phase 8: a toolbar imported from a Firefox backup (Safari) -----
+{
+  const { parseFirefoxBackup } = await page("bookmarks-import.js");
+  const { groupsFromNodes, linkCount, hasBookmarksApi } = await page("bookmarks.js");
+
+  // As Firefox writes a backup: a type on every node, and the root's folders
+  // marked by `root`, with internal names ("toolbar") as their titles.
+  const place = (title, uri) => ({ guid: "aaaaaaaaaaaa", title, dateAdded: 1, typeCode: 1, type: "text/x-moz-place", uri });
+  const container = (title, children, extra = {}) => ({
+    guid: "bbbbbbbbbbbb",
+    title,
+    typeCode: 2,
+    type: "text/x-moz-place-container",
+    children,
+    ...extra,
+  });
+  const backup = container(
+    "",
+    [
+      container("menu", [place("Menu only", "https://menu.example/")], { guid: "menu________", root: "bookmarksMenuFolder" }),
+      container(
+        "toolbar",
+        [
+          place("Loose", "https://loose.example/"),
+          { guid: "cccccccccccc", title: "", typeCode: 3, type: "text/x-moz-place-separator" },
+          place("Bookmarklet", "javascript:alert(1)"),
+          container("Work", [place("Mail", "https://mail.example/"), container("Infra", [place("Status", "https://status.example/")])]),
+          container("Empty", []),
+        ],
+        { guid: "toolbar_____", root: "toolbarFolder" },
+      ),
+      container("unfiled", [place("Other", "https://other.example/")], { guid: "unfiled_____", root: "unfiledBookmarksFolder" }),
+    ],
+    { guid: "root________", root: "placesRoot" },
+  );
+  const text = JSON.stringify(backup);
+
+  check("parseFirefoxBackup keeps only the toolbar, as getTree() nodes without separators", () => {
+    assert.deepEqual(parseFirefoxBackup(text), [
+      { type: "bookmark", title: "Loose", url: "https://loose.example/" },
+      { type: "bookmark", title: "Bookmarklet", url: "javascript:alert(1)" },
+      {
+        type: "folder",
+        title: "Work",
+        children: [
+          { type: "bookmark", title: "Mail", url: "https://mail.example/" },
+          { type: "folder", title: "Infra", children: [{ type: "bookmark", title: "Status", url: "https://status.example/" }] },
+        ],
+      },
+      { type: "folder", title: "Empty", children: [] },
+    ]);
+  });
+
+  check("an imported toolbar gives the same cards as the real one", () => {
+    const groups = groupsFromNodes(parseFirefoxBackup(text));
+    assert.deepEqual(groups.map((group) => group.title), ["Toolbar", "Work"]);
+    assert.deepEqual(groups[0].sections[0].items.map((item) => item.title), ["Loose"]);
+    assert.deepEqual(groups[1].sections.map((section) => section.title), ["", "Infra"]);
+    assert.equal(linkCount(parseFirefoxBackup(text)), 3);
+  });
+
+  check("parseFirefoxBackup refuses anything that isn't a backup with a toolbar", () => {
+    const noToolbar = { ...backup, children: backup.children.filter((node) => node.root !== "toolbarFolder") };
+    assert.equal(parseFirefoxBackup(JSON.stringify(noToolbar)), null);
+    const html = '<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<DL><p>\n<DT><H3 PERSONAL_TOOLBAR_FOLDER="true">Bookmarks Toolbar</H3>\n</DL>';
+    assert.equal(parseFirefoxBackup(html), null);
+    for (const junk of ["", "{}", "null", "[]", '{"children":"nope"}']) assert.equal(parseFirefoxBackup(junk), null);
+  });
+
+  check("a toolbar found by guid alone, with untitled entries, still imports", () => {
+    const bare = { children: [{ guid: "toolbar_____", type: "text/x-moz-place-container", children: [{ type: "text/x-moz-place", uri: "https://x.example/" }] }] };
+    assert.deepEqual(parseFirefoxBackup(JSON.stringify(bare)), [{ type: "bookmark", title: "", url: "https://x.example/" }]);
+  });
+
+  check("hasBookmarksApi follows browser.bookmarks", () => {
+    assert.equal(hasBookmarksApi(), false);
+    globalThis.browser = { bookmarks: {} };
+    try {
+      assert.equal(hasBookmarksApi(), true);
+    } finally {
+      delete globalThis.browser;
+    }
+  });
+}
+
+// ----- phase 9: Safari signing and renewal (dev/safari.mjs) -----
+{
+  const {
+    plistValue,
+    profileExpiry,
+    profileBundleId,
+    renewalDue,
+    renewalOutcome,
+    extensionEnabled,
+    extensionListed,
+    agentPlist,
+    launcherScript,
+    aqueductArgs,
+    BUNDLE_ID,
+    LABEL,
+    RENEW_WITHIN,
+  } = await import(new URL("./safari.mjs", import.meta.url));
+  const HOUR = 3600_000;
+  const now = Date.UTC(2026, 10, 20, 12);
+
+  // A free team's profile as `security cms -D` prints it, trimmed.
+  const profile = `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<dict>
+	<key>CreationDate</key>
+	<date>2026-11-18T09:00:00Z</date>
+	<key>Entitlements</key>
+	<dict>
+		<key>com.apple.application-identifier</key>
+		<string>A1B2C3D4E5.com.nullgreg.frontpage.Extension</string>
+		<key>com.apple.developer.team-identifier</key>
+		<string>A1B2C3D4E5</string>
+	</dict>
+	<key>ExpirationDate</key>
+	<date>2026-11-25T09:00:00Z</date>
+	<key>Name</key>
+	<string>Mac Team Provisioning Profile: com.nullgreg.frontpage.Extension</string>
+</dict>
+</plist>`;
+
+  check("profileExpiry and profileBundleId read a decoded profile", () => {
+    assert.equal(profileExpiry(profile), Date.UTC(2026, 10, 25, 9));
+    assert.equal(profileBundleId(profile), "com.nullgreg.frontpage.Extension");
+    assert.equal(plistValue(profile, "com.apple.developer.team-identifier"), "A1B2C3D4E5");
+    assert.equal(profileExpiry(""), null);
+    assert.equal(profileBundleId("<plist/>"), null);
+  });
+
+  check("renewalDue waits until under 72 hours are left", () => {
+    const base = { installed: true, now };
+    assert.equal(renewalDue({ ...base, expiresAt: now + RENEW_WITHIN + HOUR }).due, false);
+    assert.equal(renewalDue({ ...base, expiresAt: now + RENEW_WITHIN - HOUR }).due, true);
+    assert.equal(renewalDue({ ...base, expiresAt: now - HOUR }).due, true);
+    assert.equal(renewalDue({ ...base, expiresAt: null }).due, true, "an ad-hoc copy needs re-signing");
+  });
+
+  check("renewalDue holds off after a failure, after a repeated profile, and with nothing installed", () => {
+    const soon = now + HOUR;
+    assert.equal(renewalDue({ installed: true, now, expiresAt: soon, retryAfter: now + HOUR }).due, false);
+    assert.equal(renewalDue({ installed: true, now, expiresAt: soon, waitUntil: soon }).due, false);
+    assert.equal(renewalDue({ installed: true, now: soon + 1, expiresAt: soon, waitUntil: soon }).due, true);
+    assert.equal(renewalDue({ installed: false, now, expiresAt: null }).due, false, "an uninstalled app isn't put back");
+  });
+
+  check("renewalDue rebuilds at once when Safari drops a copy that should still be good", () => {
+    const later = now + 300 * 24 * HOUR; // a certificate-only signature, months to go
+    assert.equal(renewalDue({ installed: true, now, expiresAt: later }).due, false);
+    assert.equal(renewalDue({ installed: true, now, expiresAt: later, healthy: false }).due, true);
+    assert.equal(renewalDue({ installed: true, now, expiresAt: later, healthy: false, waitUntil: later }).due, true);
+    assert.equal(renewalDue({ installed: true, now, expiresAt: later, healthy: false, retryAfter: now + HOUR }).due, false);
+  });
+
+  check("extensionListed finds Frontpage with or without an on/off flag", () => {
+    const line = "     com.nullgreg.frontpage.Extension(1.0.5058887)\t9F06\t2026-11-19 03:29:19 +0000\t/Users/me/Applications/Frontpage.app";
+    assert.equal(extensionListed(line), true);
+    assert.equal(extensionListed("(no matches)"), false);
+    assert.equal(extensionListed("+    com.nullgreg.frontpage.other.Extension(1.0)"), false);
+  });
+
+  check("renewalOutcome tells a fresh profile from a repeated one and from failures", () => {
+    const week = 7 * 24 * HOUR;
+    assert.equal(renewalOutcome(now + HOUR, now + week, now), "renewed");
+    assert.equal(renewalOutcome(null, now + week, now), "renewed");
+    assert.equal(renewalOutcome(now + HOUR, now + HOUR, now), "same");
+    assert.equal(renewalOutcome(now + HOUR, null, now), "unsigned");
+    assert.equal(renewalOutcome(null, now - HOUR, now), "expired");
+  });
+
+  check("extensionEnabled reads pluginkit's flag column for Frontpage only", () => {
+    const listing = [
+      "+    com.example.other.Extension(2.0)\tAAAA\t2026-11-01 10:00:00 +0000\t/Applications/Other.app/Contents/PlugIns/Other.appex",
+      "-    com.nullgreg.frontpage.Extension(1.4.0)\tBBBB\t2026-11-18 10:00:00 +0000\t/Users/me/Applications/Frontpage.app/Contents/PlugIns/Frontpage Extension.appex",
+    ].join("\n");
+    assert.equal(extensionEnabled(listing), false);
+    assert.equal(extensionEnabled(listing.replace("-    com.nullgreg", "+    com.nullgreg")), true);
+    assert.equal(extensionEnabled(listing.replace("-    com.nullgreg", "     com.nullgreg")), null);
+    assert.equal(extensionEnabled("(no matches)"), null);
+  });
+
+  check("agentPlist starts the launcher hourly and at login, with paths escaped", () => {
+    const plist = agentPlist({
+      program: "/Users/me/Library/Application Support/Frontpage/Frontpage Safari Renewal",
+      cwd: "/Users/me/R&D/frontpage",
+      log: "/Users/me/Library/Logs/Frontpage/safari-renew.log",
+      env: { PATH: "/usr/bin:/bin", VOLTA_HOME: "/Users/me/.volta" },
+    });
+    assert.ok(plist.includes(`<string>${LABEL}</string>`));
+    assert.match(plist, /<key>ProgramArguments<\/key>\s*<array>\s*<string>[^<]*\/Frontpage Safari Renewal<\/string>\s*<\/array>/);
+    assert.match(plist, /<string>\/Users\/me\/R&amp;D\/frontpage<\/string>/);
+    assert.match(plist, /<key>StartInterval<\/key>\s*<integer>3600<\/integer>/);
+    assert.match(plist, /<key>RunAtLoad<\/key>\s*<true\/>/);
+    assert.match(plist, /<key>VOLTA_HOME<\/key>\s*<string>\/Users\/me\/\.volta<\/string>/);
+    assert.doesNotMatch(plist, /R&D/);
+  });
+
+  check("launcherScript explains itself and runs renew, quoting paths for the shell", () => {
+    const script = launcherScript({ node: "/Users/me/.volta/bin/node", script: "/Users/me/Bob's code/frontpage/dev/safari.mjs", cwd: "/Users/me/Bob's code/frontpage" });
+    assert.match(script, /^#!\/bin\/sh\n# Frontpage Safari Renewal\n/);
+    assert.match(script, /safari:unschedule/);
+    assert.ok(script.includes("cd '/Users/me/Bob'\\''s code/frontpage' || exit 1"));
+    assert.ok(script.trimEnd().endsWith("exec '/Users/me/.volta/bin/node' '/Users/me/Bob'\\''s code/frontpage/dev/safari.mjs' renew"));
+  });
+
+  check("aqueductArgs signs with the team, skips the shim and leaves Safari running", () => {
+    const args = aqueductArgs();
+    for (const flag of ["--install", "--no-shim", "--no-safari-restart", "--background-launch", "--ci", "--clean"]) {
+      assert.ok(args.includes(flag), flag);
+    }
+    assert.equal(args[args.indexOf("--team") + 1], "auto");
+    const renewal = aqueductArgs("A1B2C3D4E5");
+    assert.equal(renewal[renewal.indexOf("--team") + 1], "A1B2C3D4E5", "a known team, so Aqueduct can't fall back to ad-hoc");
+    assert.equal(args[args.indexOf("--bundle-id") + 1], BUNDLE_ID);
+    assert.ok(!args.includes("--verify"), "--verify opens Safari, and fails a first install that isn't turned on yet");
   });
 }
 

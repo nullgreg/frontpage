@@ -19,6 +19,8 @@
 //   livephotos   let Photos reach the real Commons and Art Institute APIs
 //                (otherwise both answer with the pictures in dev/fixtures/)
 //   icons        site icons on (makes network requests)
+//   safari       no bookmarks API, as in Safari: the cards come from an import
+//   imported     a toolbar already imported from a Firefox backup (use with safari)
 //   settings     open the settings dialog
 //   notes        open the notes panel
 //   q=TEXT       text typed into the search box
@@ -219,6 +221,7 @@
     id: "toolbar_____",
     title: "Bookmarks Toolbar",
     type: "folder",
+    folderType: "bookmarks-bar",
     children: [
       bookmark("Hacker News", "https://news.ycombinator.com/"),
       bookmark("Wikipedia", "https://en.wikipedia.org/"),
@@ -307,16 +310,29 @@
     updatedAt: 1,
   };
 
-  globalThis.browser = {
-    bookmarks: {
-      getSubTree: async () => [structuredClone(TOOLBAR)],
-      onCreated: noListeners,
-      onRemoved: noListeners,
-      onChanged: noListeners,
-      onMoved: noListeners,
+  // What bookmarks.js keeps after importing a Firefox backup with this toolbar.
+  const imported = {
+    importedBookmarks: {
+      nodes: structuredClone(TOOLBAR.children),
+      source: "bookmarks-2026-11-18.json",
+      importedAt: new Date(2026, 10, 18, 9, 30).getTime(),
     },
+  };
+
+  globalThis.browser = {
+    ...(has("safari")
+      ? {}
+      : {
+          bookmarks: {
+            getTree: async () => [{ id: "root________", title: "", children: [structuredClone(TOOLBAR)] }],
+            onCreated: noListeners,
+            onRemoved: noListeners,
+            onChanged: noListeners,
+            onMoved: noListeners,
+          },
+        }),
     storage: {
-      local: area(),
+      local: area(has("imported") ? imported : {}),
       sync: area({ settings }),
       onChanged: noListeners,
     },

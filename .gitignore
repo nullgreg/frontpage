@@ -1,5 +1,6 @@
 node_modules/
 web-ext-artifacts/
+dist/
 dev/out/
 __pycache__/
 extension/.amo-upload-uuid

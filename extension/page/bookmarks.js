@@ -1,5 +1,17 @@
-const TOOLBAR_ID = "toolbar_____";
-// Firefox won't open these from an extension page, by link or by script:
+// The bookmark cards: reads the bookmarks toolbar, watches it for changes and
+// lays it out as a grid. Safari has no bookmarks API, so there the toolbar is
+// one imported from a Firefox backup.
+import { getLocal, setLocal, onStored } from "./store.js";
+import { parseFirefoxBackup } from "./bookmarks-import.js";
+
+// Firefox gives its toolbar a fixed id. Chrome marks its bar with a folderType
+// instead, and may have two: one only on this device, one synced to the account.
+const FIREFOX_TOOLBAR_ID = "toolbar_____";
+// Where an imported toolbar is kept: { nodes, source, importedAt }. In local
+// storage because a whole toolbar is far bigger than sync allows per item.
+const IMPORT_KEY = "importedBookmarks";
+const isToolbar = (node) => node.folderType === "bookmarks-bar" || node.id === FIREFOX_TOOLBAR_ID;
+// Browsers won't open these from an extension page, by link or by script:
 // smart-bookmark queries, bookmarklets, data: URLs, local files and the
 // browser's privileged pages (about:config, chrome://, ...).
 const UNLINKABLE = /^(place|javascript|data|about|file|chrome|resource|view-source):/i;
@@ -34,12 +46,19 @@ function collect(folder, path, out) {
   for (const sub of subfolders) collect(sub, [...path, sub.title || "Untitled"], out);
 }
 
-/** Reads the bookmarks toolbar as a list of groups, one per top-level folder. */
-export async function loadGroups() {
-  const [toolbar] = await browser.bookmarks.getSubTree(TOOLBAR_ID);
+/** The toolbar's contents, from a full tree as bookmarks.getTree() returns it. */
+export function toolbarNodes(tree) {
+  return tree
+    .flatMap((root) => root.children ?? [])
+    .filter(isToolbar)
+    .flatMap((toolbar) => toolbar.children ?? []);
+}
+
+/** Turns the toolbar's contents into a list of groups, one per top-level folder. */
+export function groupsFromNodes(nodes) {
   const groups = [];
   const loose = [];
-  for (const node of toolbar.children ?? []) {
+  for (const node of nodes) {
     if (isBookmark(node)) {
       loose.push(toItem(node));
     } else if (isFolder(node)) {
@@ -52,16 +71,58 @@ export async function loadGroups() {
   return groups;
 }
 
-/** Calls back (debounced) whenever any bookmark is added, removed, edited or moved. */
+/** False in Safari, which gives extensions no bookmarks API. */
+export function hasBookmarksApi() {
+  return Boolean(globalThis.browser?.bookmarks);
+}
+
+/** How many links the cards for these toolbar nodes show. */
+export function linkCount(nodes) {
+  return groupsFromNodes(nodes).reduce(
+    (sum, group) => sum + group.sections.reduce((inGroup, section) => inGroup + section.items.length, 0),
+    0,
+  );
+}
+
+/** Reads the bookmarks toolbar as a list of groups, one per top-level folder. */
+export async function loadGroups() {
+  if (!hasBookmarksApi()) return groupsFromNodes((await getLocal(IMPORT_KEY, null))?.nodes ?? []);
+  return groupsFromNodes(toolbarNodes(await browser.bookmarks.getTree()));
+}
+
+/**
+ * Keeps the toolbar from the text of a Firefox backup, for loadGroups() to use
+ * where there is no bookmarks API. Resolves to the number of links on it, or
+ * null if the text isn't a backup with a toolbar.
+ */
+export async function importBookmarks(text, source) {
+  const nodes = parseFirefoxBackup(text);
+  if (!nodes) return null;
+  await setLocal(IMPORT_KEY, { nodes, source, importedAt: Date.now() });
+  return linkCount(nodes);
+}
+
+/** The last import, as { count, source, importedAt }, or null if there hasn't been one. */
+export async function lastImport() {
+  const saved = await getLocal(IMPORT_KEY, null);
+  if (!saved) return null;
+  return { count: linkCount(saved.nodes ?? []), source: saved.source, importedAt: saved.importedAt };
+}
+
+/** Calls back (debounced) whenever any bookmark is added, removed, edited, moved or re-sorted. */
 export function watchBookmarks(callback) {
   let timer;
   const schedule = () => {
     clearTimeout(timer);
     timer = setTimeout(callback, 150);
   };
-  for (const event of ["onCreated", "onRemoved", "onChanged", "onMoved"]) {
-    browser.bookmarks[event].addListener(schedule);
+  // The last two are Chrome's (sorting a folder, finishing an import); Firefox
+  // lacks some, and Safari has no bookmarks API at all.
+  for (const event of ["onCreated", "onRemoved", "onChanged", "onMoved", "onChildrenReordered", "onImportEnded"]) {
+    browser.bookmarks?.[event]?.addListener(schedule);
   }
+  // A toolbar imported in this tab or another one.
+  onStored(IMPORT_KEY, schedule);
 }
 
 function el(tag, className, text) {
@@ -146,9 +207,10 @@ export function createGrid(grid) {
     const entries = [];
     cards = [];
     if (!groups.length) {
-      grid.replaceChildren(
-        el("p", "empty", "Your bookmarks toolbar is empty. Add bookmarks or folders to it and they will appear here."),
-      );
+      const text = hasBookmarksApi()
+        ? "Your bookmarks toolbar is empty. Add bookmarks or folders to it and they will appear here."
+        : "This browser doesn't let extensions read its bookmarks. Import a bookmarks backup from Firefox in settings and its toolbar will appear here.";
+      grid.replaceChildren(el("p", "empty", text));
       return entries;
     }
 

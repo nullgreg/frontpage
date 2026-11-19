@@ -157,13 +157,18 @@ body::after {
 .backdrop[data-kind="photo"] ~ .wrap .joke { color: var(--ink-2); }
 
 /* ---------- photo credit ---------- */
+/* Behind the page content and out of sight until the background is clicked
+   (photos.js adds .shown, and takes it away again a few seconds later). */
 .photo-credit {
-  position: fixed; right: 16px; bottom: 14px; z-index: 2;
+  position: fixed; right: 16px; bottom: 14px; z-index: 0;
   display: flex; align-items: center; gap: 2px;
   max-width: min(720px, calc(100vw - 32px)); padding: 2px 3px 2px 12px; border-radius: 12px;
-  background: rgb(6 9 18 / 0.45); backdrop-filter: blur(12px);
-  font-size: 12px; color: var(--ink-2);
+  background: rgb(6 9 18 / 0.3); backdrop-filter: blur(10px);
+  font-size: 12px; color: var(--ink-3);
+  opacity: 0; visibility: hidden;
+  transition: opacity 0.6s ease, visibility 0s linear 0.6s;
 }
+.photo-credit.shown { opacity: 1; visibility: visible; transition: opacity 0.6s ease; }
 .photo-link, .photo-msg { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .photo-link { color: inherit; text-decoration: none; }
 .photo-link[href]:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
@@ -171,13 +176,11 @@ body::after {
    source still fit. The full credit is in the link's tooltip. */
 .photo-title {
   display: inline-block; max-width: 44ch; vertical-align: bottom;
-  overflow: hidden; text-overflow: ellipsis; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; color: var(--ink-2);
 }
 .photo-credit .icon-btn { width: 30px; height: 30px; border-radius: 9px; flex: none; }
 .photo-credit .icon { width: 16px; height: 16px; }
 .photo-link[hidden] ~ .photo-hide { display: none; }
-/* Room at the bottom of the page so the credit line never sits on a card. */
-body:has(> .photo-credit:not([hidden])) .wrap { padding-bottom: 72px; }
 
 /* ---------- layout ---------- */
 .wrap {
@@ -185,6 +188,11 @@ body:has(> .photo-credit:not([hidden])) .wrap { padding-bottom: 72px; }
   padding: clamp(20px, 4vw, 56px);
   transition: padding-right 0.3s ease;
 }
+/* Above the photo credit. The empty parts of the layout let clicks through,
+   to the credit where it shows and to the background (which reveals it). */
+.wrap { position: relative; z-index: 1; }
+.wrap, .wrap > .top, .wrap > .grid, .grid > .col { pointer-events: none; }
+.wrap > :not(.top, .grid), .top > *, .grid > :not(.col), .col > * { pointer-events: auto; }
 .top {
   display: flex; justify-content: space-between; align-items: flex-start;
   gap: 24px; flex-wrap: wrap;
@@ -431,6 +439,8 @@ textarea::placeholder, input::placeholder { color: var(--ink-3); opacity: 1; }
   background: var(--glass-hi); white-space: nowrap;
 }
 .btn:hover { background: rgb(255 255 255 / 0.16); }
+/* Alone in a field there's no input beside it to set its height. */
+.field > .btn { justify-self: start; padding: 10px 16px; }
 .city-current {
   display: flex; justify-content: space-between; align-items: center; gap: 12px;
   padding: 8px 12px; border-radius: 12px; background: hsl(220 100% 70% / 0.14);

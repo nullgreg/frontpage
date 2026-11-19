@@ -19,7 +19,7 @@ const settings = await initSettings();
 settingsLoaded = true;
 
 // Only the newest few hundred are kept, so the settings stay within what
-// Firefox Sync takes per item. The remembered picture can show before the
+// browser sync takes per item. The remembered picture can show before the
 // settings have loaded; a click that early just skips the picture.
 function hidePhoto(id) {
   if (!settingsLoaded) return;

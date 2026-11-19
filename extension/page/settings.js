@@ -4,11 +4,22 @@ import { findCities } from "./weather.js";
 import { BACKGROUNDS, previewOf } from "./background.js";
 import { parseOwnJokes } from "./jokes.js";
 import { PHOTO_CATEGORIES, DEFAULT_PHOTO_CATEGORIES, REFRESH_OPTIONS, DEFAULT_REFRESH } from "./photos.js";
+import { hasBookmarksApi, importBookmarks, lastImport } from "./bookmarks.js";
 
 const $ = (id) => document.getElementById(id);
 
+/** "142 bookmarks from bookmarks-2026-11-18.json, imported 18 November." */
+function describeImport(last) {
+  if (!last) return "";
+  const count = last.count === 1 ? "1 bookmark" : `${last.count} bookmarks`;
+  const date = new Date(last.importedAt);
+  const year = date.getFullYear() === new Date().getFullYear() ? {} : { year: "numeric" };
+  const when = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "long", ...year }).format(date);
+  return `${count}${last.source ? ` from ${last.source}` : ""}, imported ${when}.`;
+}
+
 // Your own jokes can run long, so they are stored as an item of their own:
-// Firefox Sync caps each item at about 8 KB, and the other settings shouldn't
+// Browser sync caps each item at about 8 KB, and the other settings shouldn't
 // stop syncing because of them. In memory they are simply `ownJokes` on the
 // settings object.
 const OWN_JOKES_KEY = "ownJokes";
@@ -201,6 +212,34 @@ export async function initSettings() {
   });
 
   $("city-clear").addEventListener("click", () => update({ city: null }));
+
+  // Safari gives extensions no bookmarks API, so there the toolbar comes from
+  // a Firefox backup picked here.
+  if (!hasBookmarksApi()) {
+    const file = $("bookmarks-file");
+    const status = $("bookmarks-status");
+    $("bookmarks-field").hidden = false;
+    $("bookmarks-import").addEventListener("click", () => file.click());
+    file.addEventListener("change", async () => {
+      const [picked] = file.files;
+      // Cleared so that picking the same file again, after a fresh backup, still counts as a change.
+      file.value = "";
+      if (!picked) return;
+      try {
+        const count = await importBookmarks(await picked.text(), picked.name);
+        status.textContent =
+          count == null
+            ? "That isn't a Firefox bookmarks backup. In Firefox, use Backup… rather than Export Bookmarks to HTML."
+            : describeImport(await lastImport());
+      } catch (error) {
+        console.warn("Frontpage: bookmark import failed", error);
+        status.textContent = "Couldn't import that file. Try again with a fresh backup.";
+      }
+    });
+    lastImport().then((last) => {
+      status.textContent = describeImport(last);
+    });
+  }
 
   $("settings-toggle").addEventListener("click", open);
   $("settings-close").addEventListener("click", () => dialog.close());
